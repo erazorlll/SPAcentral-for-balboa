@@ -184,3 +184,61 @@ def test_capture_replay_is_deterministic() -> None:
     first = [type(parse_frame(f)).__name__ for f in FrameReader().feed(raw)]
     second = [type(parse_frame(f)).__name__ for f in FrameReader().feed(raw)]
     assert first == second
+
+
+async def test_missing_configuration_is_requested_again(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Observed on real hardware: the hardware description arrived, the model
+    name did not -- lost in a collision on a bus the panel polls 46 times a
+    second. The client must ask again rather than show "Balboa Spa" forever.
+    """
+    monkeypatch.setattr(client_module, "CONFIGURATION_RETRY_DELAY", 0.05)
+
+    hardware = _frames_of("ew11_probe", (ControlConfiguration2,), 1)
+    status = _frames_of("ew11_idle", (StatusUpdate,), 1)
+    model = _frames_of("ew11_probe", (ControlConfiguration,), 1)
+
+    # Connect with the model response deliberately absent.
+    transport = FakeTransport(hardware + status)
+    client = SpaClient(transport)
+    assert await client.connect()
+    try:
+        assert client.state.ready
+        assert client.state.model == "Balboa Spa"  # unknown so far
+
+        sent_before = len(transport.written)
+        await asyncio.sleep(0.15)
+        assert len(transport.written) > sent_before, "should have re-requested"
+
+        # The controller answers the retry this time.
+        transport.push(model[0])
+        await asyncio.sleep(0.1)
+        assert client.state.model == "BP6013G3"
+    finally:
+        await client.disconnect()
+
+
+async def test_gap_filling_stops_once_complete(
+    monkeypatch: pytest.MonkeyPatch, handshake_frames: list[bytes]
+) -> None:
+    """Nothing further must be sent when every piece is already present.
+
+    The watchdog is relaxed here on purpose: with the fixture's aggressive
+    timings it would reconnect mid-test and legitimately re-send the requests,
+    which is a different behaviour from the one under test.
+    """
+    monkeypatch.setattr(client_module, "CONFIGURATION_RETRY_DELAY", 0.05)
+    monkeypatch.setattr(client_module, "RECONNECT_AFTER", 60.0)
+
+    frames = handshake_frames + _frames_of("ew11_probe", (FilterCycles,), 1)
+    transport = FakeTransport(frames)
+    client = SpaClient(transport)
+    assert await client.connect()
+    try:
+        await asyncio.sleep(0.1)
+        sent_before = len(transport.written)
+        await asyncio.sleep(0.2)
+        assert len(transport.written) == sent_before
+    finally:
+        await client.disconnect()

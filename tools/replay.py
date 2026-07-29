@@ -16,9 +16,10 @@ import asyncio
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "custom_components" / "balboa_spacentral"))
+_PACKAGE_ROOT = Path(__file__).resolve().parent.parent / "custom_components"
+sys.path.insert(0, str(_PACKAGE_ROOT / "balboa_spacentral"))
 
-from balboa.framing import FrameReader  # noqa: E402
+from balboa.framing import FrameReader  # noqa: E402  (path set just above)
 from balboa.messages import (  # noqa: E402
     ControlConfiguration,
     ControlConfiguration2,

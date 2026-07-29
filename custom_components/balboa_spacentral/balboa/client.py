@@ -61,6 +61,9 @@ TOGGLE_INTERVAL = 0.4
 TOGGLE_LIMIT = 4
 #: Spacing between the four configuration requests, so we do not flood the bus.
 REQUEST_INTERVAL = 0.2
+#: How often to re-ask for configuration pieces that never came back.
+CONFIGURATION_RETRIES = 4
+CONFIGURATION_RETRY_DELAY = 3.0
 
 
 class SpaClient:
@@ -81,6 +84,7 @@ class SpaClient:
         self._listeners: list[Callable[[], None]] = []
         self._reader_task: asyncio.Task[None] | None = None
         self._monitor_task: asyncio.Task[None] | None = None
+        self._gap_task: asyncio.Task[None] | None = None
         self._configured = asyncio.Event()
         self._shutdown = False
 
@@ -150,14 +154,15 @@ class SpaClient:
     async def disconnect(self) -> None:
         """Stop everything and close the connection."""
         self._shutdown = True
-        for task in (self._monitor_task, self._reader_task):
+        tasks = (self._monitor_task, self._reader_task, self._gap_task)
+        for task in tasks:
             if task is not None:
                 task.cancel()
-        for task in (self._monitor_task, self._reader_task):
+        for task in tasks:
             if task is not None:
                 with contextlib.suppress(asyncio.CancelledError, Exception):
                     await task
-        self._monitor_task = self._reader_task = None
+        self._monitor_task = self._reader_task = self._gap_task = None
         await self._transport.close()
 
     def subscribe(self, callback: Callable[[], None]) -> Callable[[], None]:
@@ -291,6 +296,8 @@ class SpaClient:
             self._reader_task = asyncio.create_task(self._read_loop())
         if self._monitor_task is None or self._monitor_task.done():
             self._monitor_task = asyncio.create_task(self._monitor_loop())
+        if self._gap_task is None or self._gap_task.done():
+            self._gap_task = asyncio.create_task(self._fill_configuration_gaps())
 
     async def _request_configuration(self) -> None:
         """Ask for everything we need to build entities.
@@ -311,6 +318,35 @@ class SpaClient:
                 _LOGGER.debug("configuration request failed: %s", err)
                 return
             await asyncio.sleep(REQUEST_INTERVAL)
+
+    async def _fill_configuration_gaps(self) -> None:
+        """Re-ask for whatever did not come back.
+
+        We write without arbitration onto a bus the control panel is polling
+        dozens of times a second, so a request or its answer can be lost in a
+        collision -- observed on real hardware, where the model name went
+        missing while the hardware description arrived. Only the pieces still
+        absent are requested again.
+        """
+        for _ in range(CONFIGURATION_RETRIES):
+            await asyncio.sleep(CONFIGURATION_RETRY_DELAY)
+            if self._shutdown or not self._transport.connected:
+                return
+
+            missing: list[int] = []
+            if self._state.control_configuration is None:
+                missing.append(1)
+            if self._state.hardware is None:
+                missing.append(2)
+            if self._state.filter_cycles is None:
+                missing.append(3)
+            if not missing:
+                return
+
+            _LOGGER.debug("%s: re-requesting configuration %s", self.description, missing)
+            for kind in missing:
+                await self._send(request_control_configuration(kind))
+                await asyncio.sleep(REQUEST_INTERVAL)
 
     async def _send(self, frame: bytes) -> None:
         """Write a frame straight to the bus.
