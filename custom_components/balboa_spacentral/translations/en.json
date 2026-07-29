@@ -132,11 +132,6 @@
         "name": "Hold"
       }
     },
-    "climate": {
-      "spa": {
-        "name": null
-      }
-    },
     "fan": {
       "pump_1": {
         "name": "Pump 1"

@@ -61,6 +61,10 @@ class BalboaClimate(BalboaEntity, ClimateEntity):
 
     def __init__(self, entry: SpaConfigEntry) -> None:
         super().__init__(entry, "spa")
+        # This entity stands for the spa itself, so it carries the device name
+        # rather than one of its own. That means no translation key at all --
+        # a key with a null name is rejected by hassfest.
+        self._attr_translation_key = None
 
     @property
     def temperature_unit(self) -> str:
