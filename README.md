@@ -6,13 +6,59 @@ Native Home Assistant integration for Balboa Water Group spa controllers — sup
 original Balboa Wi-Fi module **and** RS-485 gateways such as the Elfin EW11, ser2net or a
 local serial adapter.
 
-> **Status: running on real hardware. Reading and control both work.**
-> The complete design lives in [`docs/`](docs/00-uebersicht.md) (German).
->
-> `custom_components/balboa_spacentral/balboa/` speaks the full protocol over TCP and
-> Verified against 40,000+ frames captured from two real controllers, installed in Home
-> Assistant, and driving both spas. Climate, pumps, blower, lights, switches, sensors and
-> binary sensors are in.
+> **Status: running on real hardware.** Verified against 40,000+ frames captured from two
+> real controllers and driving both of them from Home Assistant. The design notes live in
+> [`docs/`](docs/00-uebersicht.md) (German).
+
+## Installation
+
+### Through HACS
+
+1. HACS → three-dot menu → **Custom repositories**
+2. Add `https://github.com/erazorlll/homeassistant-balboa-SPAcentral`, category **Integration**
+3. Search for **Balboa SPAcentral** in HACS and download it
+4. Restart Home Assistant
+
+### By hand
+
+Copy `custom_components/balboa_spacentral/` into your `<config>/custom_components/` and
+restart Home Assistant.
+
+## Setup
+
+**Settings → Devices & Services → Add Integration → Balboa SPAcentral**, then pick how the
+spa is connected:
+
+| Choice | For | Default port |
+|---|---|---|
+| **Serial gateway on the network** | Elfin EW11, ser2net, ESPHome serial server | 8899 |
+| **Balboa Wi-Fi module** | the original bwa module (50350) | 4257 |
+| **Serial adapter on this machine** | USB or GPIO RS-485 adapter | — |
+
+Add the integration once per spa. There is no limit, and the two do not interfere: entity
+identity never comes from the model or the MAC, so two identical controllers stay apart.
+
+A gateway has to run in **TCP server mode at 115200 baud, 8 data bits, no parity, 1 stop
+bit**. If the setup dialog says it connected but the spa sends nothing, that is almost
+always the baud rate or swapped RS-485 A/B wires.
+
+## What you get
+
+Only for hardware the controller actually reports — a spa with three pumps gets three.
+
+| Entity | Notes |
+|---|---|
+| `climate` | water and target temperature, heating action, heat mode, temperature range |
+| `fan` | pumps 1–6 and the blower, single- and two-speed |
+| `light` | lights 1–2 |
+| `switch` | auxiliary outputs, mister, second filter cycle |
+| `time` / `number` | filter cycle start times and durations |
+| `sensor` | water and target temperature, heat mode, temperature range, reminder, last fault |
+| `binary_sensor` | heating, circulation pump, filter cycles, priming, hold |
+| `event` | maintenance reminders |
+
+Options: keep the spa clock in sync with Home Assistant. Diagnostics can be downloaded
+from the device page, with the address and MAC redacted.
 
 ## Why
 
