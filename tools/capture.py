@@ -222,6 +222,7 @@ def main() -> int:
     started = time.monotonic()
     first_frame_at: float | None = None
     probe_sent = False
+    closed_by_peer = False
 
     with (
         raw_path.open("wb") as raw_f,
@@ -251,6 +252,7 @@ def main() -> int:
                 except TimeoutError:
                     continue
                 if not chunk:
+                    closed_by_peer = True
                     print("Connection closed by the remote end.")
                     break
 
@@ -301,9 +303,15 @@ def main() -> int:
 
     if not total:
         print("NO FRAMES AT ALL.")
-        print("  The TCP connection worked but nothing arrived. Check on the EW11:")
-        print("  baud rate 115200, 8 data bits, no parity, 1 stop bit; and that")
-        print("  the RS-485 A/B lines are not swapped.")
+        if closed_by_peer:
+            print("  The gateway accepted the connection and closed it again.")
+            print("  That is almost always its connection limit: something else")
+            print("  is already connected. Stop the Home Assistant integration")
+            print("  or the add-on and try again.")
+        else:
+            print("  The connection stayed open but nothing arrived. Check on the")
+            print("  EW11: baud rate 115200, 8 data bits, no parity, 1 stop bit,")
+            print("  and that the RS-485 A/B lines are not swapped.")
         return 1
 
     print("Message types:")
@@ -319,7 +327,7 @@ def main() -> int:
         answered = any("configuration_response" in k for k in counts)
         if answered:
             print("  1. MAC address available    : NO (answered, but no MAC)")
-        elif args.probe:
+        elif args.probe or args.fault_log:
             print("  1. MAC address available    : NO (request unanswered)")
         else:
             print("  1. MAC address available    : UNKNOWN -- rerun with --probe")

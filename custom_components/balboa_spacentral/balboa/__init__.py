@@ -6,6 +6,7 @@ byte streams on its own and could be published separately unchanged.
 
 from .client import SpaClient
 from .const import (
+    FAULT_CODES,
     MAX_AUX,
     MAX_LIGHTS,
     MAX_PUMPS,
@@ -21,6 +22,7 @@ from .framing import FrameReader, build_frame, checksum
 from .messages import (
     ControlConfiguration,
     ControlConfiguration2,
+    FaultLogEntry,
     FilterCycles,
     Message,
     ModuleConfiguration,
@@ -39,6 +41,7 @@ from .transport import (
 
 __all__ = [
     "BALBOA_OUI",
+    "FAULT_CODES",
     "GATEWAY_PORT",
     "MAX_AUX",
     "MAX_LIGHTS",
@@ -47,6 +50,7 @@ __all__ = [
     "ControlConfiguration",
     "ControlConfiguration2",
     "DiscoveredSpa",
+    "FaultLogEntry",
     "FilterCycles",
     "FrameReader",
     "HeatMode",

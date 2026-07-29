@@ -110,6 +110,30 @@
           "sanitizer": "Desinfektion prüfen",
           "ph": "pH-Wert prüfen"
         }
+      },
+      "last_fault": {
+        "name": "Letzte Störung",
+        "state": {
+          "clock_failed": "Uhr ausgefallen",
+          "gfci_test_failed": "FI-Test fehlgeschlagen",
+          "heater_dry": "Heizung trocken",
+          "heater_may_be_dry": "Heizung möglicherweise trocken",
+          "heater_too_hot": "Heizung zu heiß",
+          "hot_fault": "Überhitzung",
+          "low_water_flow": "Zu geringer Wasserdurchfluss",
+          "priming_mode": "Ansaugen",
+          "program_memory_failure": "Programmspeicherfehler",
+          "pump_may_be_stuck": "Eine Pumpe läuft möglicherweise dauerhaft",
+          "sensor_a_fault": "Fehler Sensor A",
+          "sensor_b_fault": "Fehler Sensor B",
+          "sensors_out_of_sync": "Sensoren nicht synchron",
+          "sensors_out_of_sync_service": "Sensoren nicht synchron, Service nötig",
+          "settings_reset": "Einstellungen zurückgesetzt",
+          "standby_mode": "Bereitschaft",
+          "water_flow_failed": "Wasserdurchfluss ausgefallen",
+          "water_too_hot": "Wasser zu heiß",
+          "unknown": "Unbekannter Code"
+        }
       }
     },
     "binary_sensor": {

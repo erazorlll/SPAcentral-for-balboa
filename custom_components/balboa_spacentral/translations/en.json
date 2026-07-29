@@ -110,6 +110,30 @@
           "sanitizer": "Check the sanitizer",
           "ph": "Check the pH"
         }
+      },
+      "last_fault": {
+        "name": "Last fault",
+        "state": {
+          "clock_failed": "Clock failed",
+          "gfci_test_failed": "GFCI test failed",
+          "heater_dry": "Heater is dry",
+          "heater_may_be_dry": "Heater may be dry",
+          "heater_too_hot": "Heater too hot",
+          "hot_fault": "Overheating",
+          "low_water_flow": "Low water flow",
+          "priming_mode": "Priming",
+          "program_memory_failure": "Program memory failure",
+          "pump_may_be_stuck": "A pump may be stuck on",
+          "sensor_a_fault": "Sensor A fault",
+          "sensor_b_fault": "Sensor B fault",
+          "sensors_out_of_sync": "Sensors out of sync",
+          "sensors_out_of_sync_service": "Sensors out of sync, call for service",
+          "settings_reset": "Settings were reset",
+          "standby_mode": "Standby",
+          "water_flow_failed": "Water flow failed",
+          "water_too_hot": "Water too hot",
+          "unknown": "Unknown code"
+        }
       }
     },
     "binary_sensor": {

@@ -12,6 +12,8 @@ from .const import (
     CELSIUS_DIVISOR,
     CLIENT_CHANNEL,
     CONTROL_CONFIG_REQUEST_PAYLOADS,
+    FAULT_CODES,
+    FAULT_LOG_SELECTOR,
     TEMPERATURE_UNKNOWN,
     HeatMode,
     MessageType,
@@ -25,6 +27,7 @@ from .framing import build_frame
 __all__ = [
     "ControlConfiguration",
     "ControlConfiguration2",
+    "FaultLogEntry",
     "FilterCycles",
     "Message",
     "ModuleConfiguration",
@@ -36,6 +39,7 @@ __all__ = [
     "parse_frame",
     "request_configuration",
     "request_control_configuration",
+    "request_fault_log",
     "set_filter_cycles",
     "set_temperature",
     "set_time",
@@ -206,6 +210,54 @@ class FilterCycles(Message):
 
 
 @dataclass(frozen=True, slots=True)
+class FaultLogEntry(Message):
+    """One entry of the controller's rolling fault log.
+
+    Temperatures are kept as the controller sent them. The entry carries no
+    scale of its own, so converting needs the unit the spa is currently using --
+    hence `temperatures()` rather than plain attributes. The decoding was
+    confirmed by a captured entry whose values matched the spa's live target
+    and water temperature exactly.
+    """
+
+    #: A lifetime counter, not the number of stored entries: a controller with
+    #: a 24-entry log reported 152 here. Kept under a name that does not claim
+    #: more than was measured.
+    counter: int
+    entry: int
+    code: int
+    #: 255 appears to mean "longer ago than this counts", but that is not
+    #: something the captures can confirm, so it is passed through unchanged.
+    days_ago: int
+    hour: int
+    minute: int
+    flags: int
+    target_temperature_raw: int
+    sensor_a_temperature_raw: int
+    sensor_b_temperature_raw: int
+
+    @property
+    def name(self) -> str:
+        """A stable key for this fault, or the raw code if it is unknown."""
+        return FAULT_CODES.get(self.code, f"code_{self.code}")
+
+    def temperatures(
+        self, unit: TemperatureUnit
+    ) -> tuple[float | None, float | None, float | None]:
+        """Target, sensor A and sensor B, scaled to the spa's unit."""
+        divisor = CELSIUS_DIVISOR if unit is TemperatureUnit.CELSIUS else 1.0
+
+        def scale(value: int) -> float | None:
+            return None if value == 0 else value / divisor
+
+        return (
+            scale(self.target_temperature_raw),
+            scale(self.sensor_a_temperature_raw),
+            scale(self.sensor_b_temperature_raw),
+        )
+
+
+@dataclass(frozen=True, slots=True)
 class StatusUpdate(Message):
     """The once-per-300ms broadcast carrying everything that changes."""
 
@@ -301,6 +353,26 @@ def _parse_status(channel: int, raw: bytes, data: bytes) -> Message:
     )
 
 
+def _parse_fault_log(channel: int, raw: bytes, data: bytes) -> Message:
+    if len(data) < 10:
+        return UnknownMessage(channel, raw, MessageType.FAULT_LOG.value)
+
+    return FaultLogEntry(
+        channel=channel,
+        raw=raw,
+        counter=data[0],
+        entry=data[1],
+        code=data[2],
+        days_ago=data[3],
+        hour=data[4],
+        minute=data[5],
+        flags=data[6],
+        target_temperature_raw=data[7],
+        sensor_a_temperature_raw=data[8],
+        sensor_b_temperature_raw=data[9],
+    )
+
+
 def _parse_control_configuration(channel: int, raw: bytes, data: bytes) -> Message:
     if len(data) < 13:
         return UnknownMessage(channel, raw, MessageType.CONTROL_CONFIGURATION.value)
@@ -380,6 +452,8 @@ def parse_frame(frame: bytes) -> Message:
         return _parse_control_configuration_2(channel, frame, data)
     if message_type == MessageType.FILTER_CYCLES.value:
         return _parse_filter_cycles(channel, frame, data)
+    if message_type == MessageType.FAULT_LOG.value:
+        return _parse_fault_log(channel, frame, data)
     if message_type == MessageType.CONFIGURATION.value:
         return ModuleConfiguration(channel, frame, _mac_from(data))
     if message_type == MessageType.ERROR.value:
@@ -414,6 +488,22 @@ def request_control_configuration(kind: int) -> bytes:
         raise ValueError(f"unknown control configuration request: {kind}")
     return build_frame(
         CLIENT_CHANNEL, MessageType.CONTROL_CONFIGURATION_REQUEST.value, payload
+    )
+
+
+def request_fault_log(entry: int = 0) -> bytes:
+    """Ask for one fault log entry.
+
+    The entry number goes in the second payload byte. The first is a selector
+    shared with the other configuration requests -- putting an index there
+    would return the filter cycles instead.
+    """
+    if not 0 <= entry <= 0xFF:
+        raise ValueError(f"fault log entry out of range: {entry}")
+    return build_frame(
+        CLIENT_CHANNEL,
+        MessageType.CONTROL_CONFIGURATION_REQUEST.value,
+        bytes([FAULT_LOG_SELECTOR, entry, 0x00]),
     )
 
 

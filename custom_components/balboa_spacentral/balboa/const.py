@@ -49,13 +49,46 @@ class MessageType(bytes, Enum):
     SET_TEMPERATURE = b"\xbf\x20"
     SET_TIME = b"\xbf\x21"
     SET_TEMPERATURE_SCALE = b"\xbf\x27"
+    FAULT_LOG = b"\xbf\x28"
 
 
-#: Payloads of the three control configuration requests.
+#: Payloads of the control configuration requests. The first byte selects which
+#: answer comes back -- it is not an index, which is why the fault log needs its
+#: own selector rather than a fourth number here.
 CONTROL_CONFIG_REQUEST_PAYLOADS: dict[int, bytes] = {
     1: b"\x02\x00\x00",  # -> CONTROL_CONFIGURATION
     2: b"\x00\x00\x01",  # -> CONTROL_CONFIGURATION_2
     3: b"\x01\x00\x00",  # -> FILTER_CYCLES
+}
+
+#: Selector for the fault log. The entry number goes in the *second* payload
+#: byte; the third is ignored -- measured on real hardware.
+FAULT_LOG_SELECTOR = 0x20
+#: Usual depth of the controller's rolling log.
+MAX_FAULT_LOG_ENTRIES = 24
+
+#: Fault codes as documented in Balboa's service literature. The wording is
+#: ours; unknown codes are reported as-is rather than hidden.
+FAULT_CODES: dict[int, str] = {
+    15: "sensors_out_of_sync",
+    16: "low_water_flow",
+    17: "water_flow_failed",
+    18: "settings_reset",
+    19: "priming_mode",
+    20: "clock_failed",
+    21: "settings_reset",
+    22: "program_memory_failure",
+    26: "sensors_out_of_sync_service",
+    27: "heater_dry",
+    28: "heater_may_be_dry",
+    29: "water_too_hot",
+    30: "heater_too_hot",
+    31: "sensor_a_fault",
+    32: "sensor_b_fault",
+    34: "pump_may_be_stuck",
+    35: "hot_fault",
+    36: "gfci_test_failed",
+    37: "standby_mode",
 }
 
 

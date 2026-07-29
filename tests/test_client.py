@@ -107,9 +107,14 @@ async def test_connect_completes_without_a_mac(handshake_frames: list[bytes]) ->
 async def test_connect_requests_configuration(handshake_frames: list[bytes]) -> None:
     client, transport = await _connected_client(handshake_frames)
     try:
-        # configuration request plus the three control configuration requests
-        assert len(transport.written) == 4
-        assert transport.written[0].hex() == "7e050abf04777e"
+        sent = [frame.hex() for frame in transport.written]
+        assert sent == [
+            "7e050abf04777e",  # configuration (the MAC one, often unanswered)
+            "7e080abf22020000897e",  # control configuration
+            "7e080abf22000001587e",  # hardware description
+            "7e080abf22010000347e",  # filter cycles
+            "7e080abf222000001c7e",  # most recent fault log entry
+        ]
     finally:
         await client.disconnect()
 

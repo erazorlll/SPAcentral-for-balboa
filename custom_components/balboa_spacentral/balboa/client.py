@@ -21,6 +21,7 @@ from .framing import FrameReader
 from .messages import (
     ControlConfiguration,
     ControlConfiguration2,
+    FaultLogEntry,
     FilterCycles,
     ModuleConfiguration,
     StatusUpdate,
@@ -28,6 +29,7 @@ from .messages import (
     parse_frame,
     request_configuration,
     request_control_configuration,
+    request_fault_log,
     set_filter_cycles,
     set_temperature,
     set_temperature_unit,
@@ -62,6 +64,9 @@ TOGGLE_INTERVAL = 0.4
 TOGGLE_LIMIT = 4
 #: Spacing between the four configuration requests, so we do not flood the bus.
 REQUEST_INTERVAL = 0.2
+#: How often to re-read the most recent fault. Faults are rare and the log is
+#: only meaningful between them, so this is deliberately lazy.
+FAULT_LOG_INTERVAL = 300.0
 #: How often to re-ask for configuration pieces that never came back.
 CONFIGURATION_RETRIES = 4
 CONFIGURATION_RETRY_DELAY = 3.0
@@ -90,6 +95,7 @@ class SpaClient:
         self._shutdown = False
 
         self._last_frame_at: float = 0.0
+        self._last_fault_request: float = 0.0
         self.unknown_messages = 0
 
     # ── Properties ───────────────────────────────────────────────────────────
@@ -196,6 +202,10 @@ class SpaClient:
             )
         )
 
+    async def request_fault_log(self, entry: int = 0) -> None:
+        """Ask for one fault log entry; the answer arrives asynchronously."""
+        await self._send(request_fault_log(entry))
+
     async def set_filter_cycles(self, cycles: FilterCycles) -> None:
         """Write both filter cycles, then ask for them back to confirm."""
         await self._send(set_filter_cycles(cycles))
@@ -299,6 +309,7 @@ class SpaClient:
     def _start_tasks(self) -> None:
         self._reader.reset()
         self._last_frame_at = time.monotonic()
+        self._last_fault_request = time.monotonic()
         if self._reader_task is None or self._reader_task.done():
             self._reader_task = asyncio.create_task(self._read_loop())
         if self._monitor_task is None or self._monitor_task.done():
@@ -318,6 +329,7 @@ class SpaClient:
             request_control_configuration(1),
             request_control_configuration(2),
             request_control_configuration(3),
+            request_fault_log(),
         ):
             try:
                 await self._transport.write(frame)
@@ -408,6 +420,11 @@ class SpaClient:
         if isinstance(message, FilterCycles):
             self._state = self._state.with_filter_cycles(message)
             return True
+        if isinstance(message, FaultLogEntry):
+            previous_fault = self._state.last_fault
+            self._state = self._state.with_fault(message)
+            # Re-read every few minutes, so only report a genuinely new entry.
+            return previous_fault is None or previous_fault.raw != message.raw
         if isinstance(message, ModuleConfiguration):
             if message.mac_address:
                 _LOGGER.debug("%s: MAC %s", self.description, message.mac_address)
@@ -449,6 +466,10 @@ class SpaClient:
 
             if self._transport.connected and silent_for < RECONNECT_AFTER:
                 attempt = 0
+                now = time.monotonic()
+                if now - self._last_fault_request > FAULT_LOG_INTERVAL:
+                    self._last_fault_request = now
+                    await self._send(request_fault_log())
                 continue
 
             if self._transport.connected:

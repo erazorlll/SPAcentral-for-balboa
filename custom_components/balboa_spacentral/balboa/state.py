@@ -8,6 +8,7 @@ from .const import MAX_AUX, MAX_LIGHTS, MAX_PUMPS
 from .messages import (
     ControlConfiguration,
     ControlConfiguration2,
+    FaultLogEntry,
     FilterCycles,
     StatusUpdate,
 )
@@ -23,6 +24,7 @@ class SpaState:
     control_configuration: ControlConfiguration | None = None
     hardware: ControlConfiguration2 | None = None
     filter_cycles: FilterCycles | None = None
+    last_fault: FaultLogEntry | None = None
     mac_address: str | None = None
 
     @property
@@ -117,6 +119,9 @@ class SpaState:
 
     def with_filter_cycles(self, cycles: FilterCycles) -> SpaState:
         return replace(self, filter_cycles=cycles)
+
+    def with_fault(self, fault: FaultLogEntry) -> SpaState:
+        return replace(self, last_fault=fault)
 
     def with_mac(self, mac: str | None) -> SpaState:
         return replace(self, mac_address=mac) if mac else self

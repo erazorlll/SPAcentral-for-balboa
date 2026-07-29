@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pytest
 from balboa.const import HeatMode, TemperatureUnit, ToggleItem
+from balboa.framing import checksum
 from balboa.messages import (
     SetTemperatureMessage,
     StatusUpdate,
@@ -182,3 +183,79 @@ def test_disabling_cycle_two_keeps_its_start_hour() -> None:
 def test_negative_duration_is_clamped() -> None:
     cycles = parse_frame(FILTER_CYCLES).with_duration(1, -60)
     assert cycles.duration(1) == 0
+
+
+# The three fault log answers captured from the real controller.
+FAULT_ENTRY_0 = bytes.fromhex("7e0f0abf28980013ff0c001842434370 7e".replace(" ", ""))
+FAULT_ENTRY_1 = bytes.fromhex("7e0f0abf28980113ff0c00184243430 97e".replace(" ", ""))
+
+
+def test_fault_log_request_matches_the_captured_frames() -> None:
+    """Byte for byte what the capture tool sent and got an answer to."""
+    from balboa.messages import request_fault_log
+
+    assert request_fault_log(0).hex() == "7e080abf222000001c7e"
+    assert request_fault_log(1).hex() == "7e080abf22200100097e"
+
+
+def test_fault_log_entry_number_is_the_second_payload_byte() -> None:
+    """The first byte is a selector shared with the other requests.
+
+    Putting an index there would ask for the filter cycles instead, which is
+    exactly the mistake the captures ruled out.
+    """
+    from balboa.messages import request_fault_log
+
+    assert request_fault_log(0)[5:8] == bytes([0x20, 0x00, 0x00])
+    assert request_fault_log(7)[5:8] == bytes([0x20, 0x07, 0x00])
+
+
+def test_fault_log_request_rejects_out_of_range() -> None:
+    from balboa.messages import request_fault_log
+
+    with pytest.raises(ValueError, match="out of range"):
+        request_fault_log(300)
+
+
+def test_fault_log_entry_decodes() -> None:
+    from balboa.messages import FaultLogEntry
+
+    fault = parse_frame(FAULT_ENTRY_0)
+    assert isinstance(fault, FaultLogEntry)
+    assert fault.entry == 0
+    assert fault.code == 19
+    assert fault.name == "priming_mode"
+    assert fault.counter == 152
+    assert fault.days_ago == 255
+    assert (fault.hour, fault.minute) == (12, 0)
+
+
+def test_fault_log_temperatures_follow_the_spa_unit() -> None:
+    """Confirmed by the capture: these matched the spa's live values."""
+    fault = parse_frame(FAULT_ENTRY_0)
+
+    target, sensor_a, sensor_b = fault.temperatures(TemperatureUnit.CELSIUS)
+    assert (target, sensor_a, sensor_b) == (33.0, 33.5, 33.5)
+
+    target_f, _, _ = fault.temperatures(TemperatureUnit.FAHRENHEIT)
+    assert target_f == 66.0
+
+
+def test_fault_log_echoes_the_requested_entry() -> None:
+    assert parse_frame(FAULT_ENTRY_0).entry == 0
+    assert parse_frame(FAULT_ENTRY_1).entry == 1
+
+
+def test_unknown_fault_code_is_not_hidden() -> None:
+    raw = bytearray(FAULT_ENTRY_0)
+    raw[7] = 99  # a code we have no wording for
+    raw[-2] = checksum(bytes(raw[1:-2]))
+    fault = parse_frame(bytes(raw))
+    assert fault.name == "code_99"
+
+
+def test_truncated_fault_log_is_not_fatal() -> None:
+    from balboa.messages import UnknownMessage
+
+    short = FAULT_ENTRY_0[:9] + FAULT_ENTRY_0[-2:]
+    assert isinstance(parse_frame(short), UnknownMessage)

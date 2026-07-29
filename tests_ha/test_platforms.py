@@ -361,3 +361,15 @@ async def test_filter_cycle_entities_exist_without_the_frame(
     finally:
         await hass.config_entries.async_unload(entry.entry_id)
         await hass.async_block_till_done()
+
+
+async def test_last_fault_sensor_exists_without_data(hass: HomeAssistant, spa) -> None:
+    """Created regardless: the fault log answers only on request."""
+    state = hass.states.get("sensor.whirlpool_last_fault")
+    assert state is not None
+    assert state.state == "unknown"
+
+
+async def test_last_fault_is_requested_during_setup(hass: HomeAssistant, spa) -> None:
+    _, transport = spa
+    assert any(f.hex() == "7e080abf222000001c7e" for f in transport.written)

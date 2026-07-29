@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
+from typing import Any, ClassVar
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -11,12 +12,12 @@ from homeassistant.components.sensor import (
     SensorEntityDescription,
     SensorStateClass,
 )
-from homeassistant.const import UnitOfTemperature
+from homeassistant.const import EntityCategory, UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import SpaConfigEntry
-from .balboa import SpaState, TemperatureUnit
+from .balboa import FAULT_CODES, SpaState, TemperatureUnit
 from .entity import BalboaEntity
 
 
@@ -79,11 +80,13 @@ async def async_setup_entry(
 ) -> None:
     """Create only the sensors this particular spa can actually feed."""
     state = entry.runtime_data.state
-    async_add_entities(
+    entities: list[BalboaEntity] = [
         BalboaSensor(entry, description)
         for description in SENSORS
         if description.exists(state)
-    )
+    ]
+    entities.append(BalboaLastFault(entry))
+    async_add_entities(entities)
 
 
 class BalboaSensor(BalboaEntity, SensorEntity):
@@ -107,3 +110,47 @@ class BalboaSensor(BalboaEntity, SensorEntity):
     @property
     def native_value(self) -> float | str | None:
         return self.entity_description.value(self.spa)
+
+
+class BalboaLastFault(BalboaEntity, SensorEntity):
+    """The most recent entry of the controller's fault log.
+
+    Only the newest entry is read. The log holds more, but the total the
+    controller reports does not match the documented depth, so walking it would
+    mean guessing how far to go.
+    """
+
+    _attr_device_class = SensorDeviceClass.ENUM
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_options: ClassVar[list[str]] = [
+        *sorted(set(FAULT_CODES.values())),
+        "unknown",
+    ]
+
+    def __init__(self, entry: SpaConfigEntry) -> None:
+        super().__init__(entry, "last_fault")
+
+    @property
+    def native_value(self) -> str | None:
+        fault = self.spa.last_fault
+        if fault is None:
+            return None
+        # Codes outside our table would break the enum contract.
+        return fault.name if fault.name in FAULT_CODES.values() else "unknown"
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        """The detail behind the code, including the raw one we may not know."""
+        fault = self.spa.last_fault
+        if fault is None:
+            return None
+        target, sensor_a, sensor_b = fault.temperatures(self._client.temperature_unit)
+        return {
+            "code": fault.code,
+            "days_ago": fault.days_ago,
+            "time": f"{fault.hour:02d}:{fault.minute:02d}",
+            "target_temperature": target,
+            "sensor_a_temperature": sensor_a,
+            "sensor_b_temperature": sensor_b,
+            "fault_counter": fault.counter,
+        }
