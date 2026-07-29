@@ -108,13 +108,16 @@ async def test_connect_requests_configuration(handshake_frames: list[bytes]) -> 
     client, transport = await _connected_client(handshake_frames)
     try:
         sent = [frame.hex() for frame in transport.written]
-        assert sent == [
+        assert sent[:4] == [
             "7e050abf04777e",  # configuration (the MAC one, often unanswered)
             "7e080abf22020000897e",  # control configuration
             "7e080abf22000001587e",  # hardware description
             "7e080abf22010000347e",  # filter cycles
-            "7e080abf222000001c7e",  # most recent fault log entry
         ]
+        # The fault log follows in the background rather than holding up the
+        # handshake -- 24 requests would add five seconds to it.
+        await asyncio.sleep(0.05)
+        assert "7e080abf222000001c7e" in [f.hex() for f in transport.written]
     finally:
         await client.disconnect()
 

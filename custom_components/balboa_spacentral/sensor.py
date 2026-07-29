@@ -115,9 +115,10 @@ class BalboaSensor(BalboaEntity, SensorEntity):
 class BalboaLastFault(BalboaEntity, SensorEntity):
     """The most recent entry of the controller's fault log.
 
-    Only the newest entry is read. The log holds more, but the total the
-    controller reports does not match the documented depth, so walking it would
-    mean guessing how far to go.
+    The whole log is read -- 24 entries, a depth confirmed by asking for entry
+    24 and getting entry 0 back. Which one is newest is decided by the reported
+    age, not by position, so a lost answer cannot promote an old entry.
+    The full log is in the diagnostics download.
     """
 
     _attr_device_class = SensorDeviceClass.ENUM
@@ -132,7 +133,7 @@ class BalboaLastFault(BalboaEntity, SensorEntity):
 
     @property
     def native_value(self) -> str | None:
-        fault = self.spa.last_fault
+        fault = self.spa.latest_fault
         if fault is None:
             return None
         # Codes outside our table would break the enum contract.
@@ -141,7 +142,7 @@ class BalboaLastFault(BalboaEntity, SensorEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
         """The detail behind the code, including the raw one we may not know."""
-        fault = self.spa.last_fault
+        fault = self.spa.latest_fault
         if fault is None:
             return None
         target, sensor_a, sensor_b = fault.temperatures(self._client.temperature_unit)

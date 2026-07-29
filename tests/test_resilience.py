@@ -230,6 +230,8 @@ async def test_gap_filling_stops_once_complete(
     """
     monkeypatch.setattr(client_module, "CONFIGURATION_RETRY_DELAY", 0.05)
     monkeypatch.setattr(client_module, "RECONNECT_AFTER", 60.0)
+    # The fault log sweep also writes; it would be counted as gap filling.
+    monkeypatch.setattr(client_module, "MAX_FAULT_LOG_ENTRIES", 0)
 
     frames = handshake_frames + _frames_of("ew11_probe", (FilterCycles,), 1)
     transport = FakeTransport(frames)

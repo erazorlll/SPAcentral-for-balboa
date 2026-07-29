@@ -64,8 +64,11 @@ CONTROL_CONFIG_REQUEST_PAYLOADS: dict[int, bytes] = {
 #: Selector for the fault log. The entry number goes in the *second* payload
 #: byte; the third is ignored -- measured on real hardware.
 FAULT_LOG_SELECTOR = 0x20
-#: Usual depth of the controller's rolling log.
+#: Depth of the rolling log. Measured, not assumed: asking for entry 24 returns
+#: the same body as entry 0, and entry 25 the same as entry 1.
 MAX_FAULT_LOG_ENTRIES = 24
+#: Age reported for entries the controller cannot date.
+FAULT_AGE_UNKNOWN = 0xFF
 
 #: Fault codes as documented in Balboa's service literature. The wording is
 #: ours; unknown codes are reported as-is rather than hidden.

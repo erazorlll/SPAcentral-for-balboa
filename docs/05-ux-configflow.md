@@ -3,7 +3,7 @@
 ## 1. Installationsweg
 
 Über HACS als Custom Repository, danach *Einstellungen → Geräte & Dienste →
-Integration hinzufügen → Balboa SPAcentral*. Kein Add-on, kein Container, kein MQTT-Broker.
+Integration hinzufügen → SPAcentral for Balboa Whirlpool*. Kein Add-on, kein Container, kein MQTT-Broker.
 
 ## 2. Einrichtung
 

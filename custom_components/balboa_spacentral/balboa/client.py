@@ -11,6 +11,7 @@ from random import uniform
 
 from .const import (
     CELSIUS_DIVISOR,
+    MAX_FAULT_LOG_ENTRIES,
     MAX_PUMPS,
     HeatMode,
     TemperatureRange,
@@ -64,9 +65,11 @@ TOGGLE_INTERVAL = 0.4
 TOGGLE_LIMIT = 4
 #: Spacing between the four configuration requests, so we do not flood the bus.
 REQUEST_INTERVAL = 0.2
-#: How often to re-read the most recent fault. Faults are rare and the log is
-#: only meaningful between them, so this is deliberately lazy.
-FAULT_LOG_INTERVAL = 300.0
+#: How often to re-read the fault log. It is 24 requests, and faults are rare,
+#: so this is deliberately lazy. Re-reading the whole log also fills in
+#: whatever the previous pass lost to a bus collision -- three of twenty-six
+#: answers went missing in a measured sweep.
+FAULT_LOG_INTERVAL = 1800.0
 #: How often to re-ask for configuration pieces that never came back.
 CONFIGURATION_RETRIES = 4
 CONFIGURATION_RETRY_DELAY = 3.0
@@ -91,6 +94,7 @@ class SpaClient:
         self._reader_task: asyncio.Task[None] | None = None
         self._monitor_task: asyncio.Task[None] | None = None
         self._gap_task: asyncio.Task[None] | None = None
+        self._fault_task: asyncio.Task[None] | None = None
         self._configured = asyncio.Event()
         self._shutdown = False
 
@@ -156,12 +160,19 @@ class SpaClient:
                 self._state.hardware is not None,
             )
             return False
+
+        self._start_fault_sweep()
         return True
 
     async def disconnect(self) -> None:
         """Stop everything and close the connection."""
         self._shutdown = True
-        tasks = (self._monitor_task, self._reader_task, self._gap_task)
+        tasks = (
+            self._monitor_task,
+            self._reader_task,
+            self._gap_task,
+            self._fault_task,
+        )
         for task in tasks:
             if task is not None:
                 task.cancel()
@@ -169,7 +180,8 @@ class SpaClient:
             if task is not None:
                 with contextlib.suppress(asyncio.CancelledError, Exception):
                     await task
-        self._monitor_task = self._reader_task = self._gap_task = None
+        self._monitor_task = self._reader_task = None
+        self._gap_task = self._fault_task = None
         await self._transport.close()
 
     def subscribe(self, callback: Callable[[], None]) -> Callable[[], None]:
@@ -205,6 +217,18 @@ class SpaClient:
     async def request_fault_log(self, entry: int = 0) -> None:
         """Ask for one fault log entry; the answer arrives asynchronously."""
         await self._send(request_fault_log(entry))
+
+    async def read_fault_log(self) -> None:
+        """Walk the whole log, one entry at a time.
+
+        Answers are folded in as they arrive, so a lost one simply leaves the
+        previous value in place until the next pass.
+        """
+        for entry in range(MAX_FAULT_LOG_ENTRIES):
+            if self._shutdown or not self._transport.connected:
+                return
+            await self._send(request_fault_log(entry))
+            await asyncio.sleep(REQUEST_INTERVAL)
 
     async def set_filter_cycles(self, cycles: FilterCycles) -> None:
         """Write both filter cycles, then ask for them back to confirm."""
@@ -317,6 +341,16 @@ class SpaClient:
         if self._gap_task is None or self._gap_task.done():
             self._gap_task = asyncio.create_task(self._fill_configuration_gaps())
 
+    def _start_fault_sweep(self) -> None:
+        """Read the log in the background, once the handshake is done.
+
+        It is 24 requests: inside the handshake they would add five seconds to
+        it, and started alongside it they would interleave with the four that
+        matter.
+        """
+        if self._fault_task is None or self._fault_task.done():
+            self._fault_task = asyncio.create_task(self.read_fault_log())
+
     async def _request_configuration(self) -> None:
         """Ask for everything we need to build entities.
 
@@ -329,7 +363,6 @@ class SpaClient:
             request_control_configuration(1),
             request_control_configuration(2),
             request_control_configuration(3),
-            request_fault_log(),
         ):
             try:
                 await self._transport.write(frame)
@@ -421,10 +454,14 @@ class SpaClient:
             self._state = self._state.with_filter_cycles(message)
             return True
         if isinstance(message, FaultLogEntry):
-            previous_fault = self._state.last_fault
+            # The whole log is re-read periodically, so most answers repeat what
+            # we already had. Only report when the newest entry actually moves.
+            previous_fault = self._state.latest_fault
             self._state = self._state.with_fault(message)
-            # Re-read every few minutes, so only report a genuinely new entry.
-            return previous_fault is None or previous_fault.raw != message.raw
+            current_fault = self._state.latest_fault
+            return current_fault is not None and (
+                previous_fault is None or previous_fault.raw != current_fault.raw
+            )
         if isinstance(message, ModuleConfiguration):
             if message.mac_address:
                 _LOGGER.debug("%s: MAC %s", self.description, message.mac_address)
@@ -469,7 +506,7 @@ class SpaClient:
                 now = time.monotonic()
                 if now - self._last_fault_request > FAULT_LOG_INTERVAL:
                     self._last_fault_request = now
-                    await self._send(request_fault_log())
+                    await self.read_fault_log()
                 continue
 
             if self._transport.connected:
@@ -496,6 +533,7 @@ class SpaClient:
             attempt = 0
             self._start_tasks()
             await self._request_configuration()
+            self._start_fault_sweep()
 
 
 def _significant_change(old: StatusUpdate, new: StatusUpdate) -> bool:

@@ -5,7 +5,7 @@ nutzbar für alle** — nicht nur für den eigenen EW11-Aufbau.
 
 | # | Frage | Entscheidung | Begründung |
 |---|---|---|---|
-| E1 | Produktname / Domain | `balboa_spacentral`, Anzeige „Balboa SPAcentral" | kollidiert nicht mit der Core-Integration `balboa` |
+| E1 | Produktname / Domain | technische Domain bleibt `balboa_spacentral`; Anzeigename „SPAcentral for Balboa Whirlpool" | Domain kollidiert nicht mit der Core-Integration `balboa`; Anzeigename stellt klar, dass es keine offizielle Balboa-Integration ist |
 | E2 | Eigene Protokollbibliothek oder `pybalboa`? | **eigene** | Phase 0 hat gemessen, dass `pybalboa` an der Modul-Identifikation scheitert. Kein Weg daran vorbei |
 | E3 | Discovery in v1? | **ja, doch aufnehmen** | Bei öffentlicher Veröffentlichung sind WLAN-Modul-Nutzer eine relevante Gruppe. Beide Verfahren sind rein additiv: DHCP greift nur bei OUI `001527*`, der UDP-Broadcast nur während der Einrichtung. Schlimmstenfalls findet er nichts. Wird als „nicht auf Hardware verifiziert" gekennzeichnet |
 | E4 | Mehrstufige Pumpen | **voll implementieren** | Die eigene Anlage hat nur einstufige, andere Nutzer nicht. Für eine öffentliche Integration nicht verhandelbar |

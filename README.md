@@ -1,6 +1,13 @@
-<img src="images/logo.png" alt="Balboa SPAcentral" width="320">
+<img src="images/logo.png" alt="SPAcentral for Balboa Whirlpool" width="320">
 
-# Balboa SPAcentral
+# SPAcentral for Balboa Whirlpool
+
+> **This is an unofficial, community-built integration.** It is not affiliated with,
+> endorsed by, sponsored by, or in any way officially connected to Balboa Water Group, or
+> any of its subsidiaries or affiliates. "Balboa" and any related names, marks and logos
+> are trademarks of Balboa Water Group and are used here only to describe hardware
+> compatibility. The official website can be found at
+> [balboawatergroup.com](https://www.balboawatergroup.com).
 
 Native Home Assistant integration for Balboa Water Group spa controllers — supporting the
 original Balboa Wi-Fi module **and** RS-485 gateways such as the Elfin EW11, ser2net or a
@@ -15,8 +22,8 @@ local serial adapter.
 ### Through HACS
 
 1. HACS → three-dot menu → **Custom repositories**
-2. Add `https://github.com/erazorlll/homeassistant-balboa-SPAcentral`, category **Integration**
-3. Search for **Balboa SPAcentral** in HACS and download it
+2. Add `https://github.com/erazorlll/SPAcentral-for-balboa`, category **Integration**
+3. Search for **SPAcentral for Balboa Whirlpool** in HACS and download it
 4. Restart Home Assistant
 
 ### By hand
@@ -26,7 +33,7 @@ restart Home Assistant.
 
 ## Setup
 
-**Settings → Devices & Services → Add Integration → Balboa SPAcentral**, then pick how the
+**Settings → Devices & Services → Add Integration → SPAcentral for Balboa Whirlpool**, then pick how the
 spa is connected:
 
 | Choice | For | Default port |
@@ -69,7 +76,7 @@ Existing solutions each cover part of the problem:
 | [ccutrer/balboa_worldwide_app](https://github.com/ccutrer/balboa_worldwide_app) + [jshank/bwalink](https://github.com/jshank/bwalink) | ✅ | ✅ | ❌ | ⚠️ | ⚠️ |
 | [HA core `balboa`](https://www.home-assistant.io/integrations/balboa) + [pybalboa](https://github.com/garbled1/pybalboa) | ✅ | ❌ | ✅ | ✅ | ❌ |
 | [jozefnad/homeassistant-smartspaclient](https://github.com/jozefnad/homeassistant-smartspaclient) | ✅ | ❌ | ✅ | ✅ | ❌ |
-| **Balboa SPAcentral** | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **SPAcentral for Balboa Whirlpool** | ✅ | ✅ | ✅ | ✅ | ✅ |
 
 The last column is the one that matters for anyone running two spas over an RS-485 gateway:
 every existing integration derives Home Assistant entity identity from a MAC address that
@@ -126,9 +133,18 @@ Built on protocol work and design ideas from
 informed the entity coverage and setup dialog — no code was taken from it, as it carries
 no licence.
 
+## Trademark notice
+
+"Balboa," "Balboa Water Group," "bwa," and any associated logos are trademarks or
+registered trademarks of Balboa Water Group. This project is an independent,
+community-written implementation of a publicly reverse-engineered communication protocol.
+It is not produced, reviewed, or supported by Balboa Water Group, and no license or other
+affiliation is implied. All trademarks belong to their respective owners.
+
 ## Licence
 
-MIT
+MIT — applies to the code in this repository. It does not grant any rights to the Balboa
+trademarks referenced above.
 
 ## Development
 

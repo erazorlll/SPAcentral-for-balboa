@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 
-from .const import MAX_AUX, MAX_LIGHTS, MAX_PUMPS
+from .const import FAULT_AGE_UNKNOWN, MAX_AUX, MAX_LIGHTS, MAX_PUMPS
 from .messages import (
     ControlConfiguration,
     ControlConfiguration2,
@@ -24,7 +24,7 @@ class SpaState:
     control_configuration: ControlConfiguration | None = None
     hardware: ControlConfiguration2 | None = None
     filter_cycles: FilterCycles | None = None
-    last_fault: FaultLogEntry | None = None
+    fault_log: tuple[FaultLogEntry, ...] = ()
     mac_address: str | None = None
 
     @property
@@ -120,8 +120,28 @@ class SpaState:
     def with_filter_cycles(self, cycles: FilterCycles) -> SpaState:
         return replace(self, filter_cycles=cycles)
 
+    @property
+    def latest_fault(self) -> FaultLogEntry | None:
+        """The most recent entry of the fault log.
+
+        Chosen by the smallest `days_ago` rather than by position. Sweeps of two
+        controllers both showed the age falling as the index rises, so the
+        newest entry sits at the end -- but answers get lost on a busy bus, and
+        the age field says what it means whether or not the last slot arrived.
+        """
+        if not self.fault_log:
+            return None
+        dated = [f for f in self.fault_log if f.days_ago != FAULT_AGE_UNKNOWN]
+        if dated:
+            return min(dated, key=lambda f: f.days_ago)
+        return max(self.fault_log, key=lambda f: f.entry)
+
     def with_fault(self, fault: FaultLogEntry) -> SpaState:
-        return replace(self, last_fault=fault)
+        """Add or replace one entry, keeping the log ordered by index."""
+        others = [f for f in self.fault_log if f.entry != fault.entry]
+        return replace(
+            self, fault_log=tuple(sorted([*others, fault], key=lambda f: f.entry))
+        )
 
     def with_mac(self, mac: str | None) -> SpaState:
         return replace(self, mac_address=mac) if mac else self

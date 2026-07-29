@@ -41,6 +41,15 @@ async def async_get_config_entry_diagnostics(
     if cycles is not None:
         cycles.pop("raw", None)
 
+    # The whole log belongs here rather than in entity attributes: it is 24
+    # entries and only interesting when something has actually gone wrong.
+    fault_log = []
+    for fault in state.fault_log:
+        record = asdict(fault)
+        record.pop("raw", None)
+        record["name"] = fault.name
+        fault_log.append(record)
+
     return {
         "entry": {
             "data": async_redact_data(dict(entry.data), TO_REDACT),
@@ -61,5 +70,7 @@ async def async_get_config_entry_diagnostics(
             "hardware": hardware,
             "filter_cycles": cycles,
             "status": status,
+            "fault_log": fault_log,
+            "latest_fault": state.latest_fault.name if state.latest_fault else None,
         },
     }

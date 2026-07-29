@@ -1,4 +1,7 @@
-"""The Balboa SPAcentral integration."""
+"""The SPAcentral for Balboa Whirlpool integration.
+
+Unofficial and not affiliated with Balboa Water Group -- see the README.
+"""
 
 from __future__ import annotations
 
