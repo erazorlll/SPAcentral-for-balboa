@@ -56,6 +56,11 @@ FAULT_LOG_PROBES: dict[str, bytes] = {
     "fault_log_byte2_is_1": bytes([0x0A, 0xBF, 0x22, 0x20, 0x00, 0x01]),
 }
 
+#: How far to walk the log when sweeping. The documented depth is 24; going a
+#: little past it shows what the controller does when asked for an entry that
+#: does not exist, which is the part that decides how to stop.
+FAULT_LOG_SWEEP_MAX = 26
+
 MESSAGE_TYPES: dict[bytes, str] = {
     bytes([0xAF, 0x13]): "status_update",
     bytes([0xBF, 0x94]): "configuration_response  <-- carries the MAC",
@@ -195,6 +200,11 @@ def main() -> int:
         action="store_true",
         help="also ask for fault log entries (implies --probe)",
     )
+    parser.add_argument(
+        "--fault-log-sweep",
+        action="store_true",
+        help=f"walk fault log entries 0..{FAULT_LOG_SWEEP_MAX - 1} to find the depth",
+    )
     parser.add_argument("--outdir", default="fixtures", help="output directory")
     args = parser.parse_args()
 
@@ -219,6 +229,7 @@ def main() -> int:
     counts: Counter[str] = Counter()
     macs: set[str] = set()
     faults: list[str] = []
+    fault_payloads: list[bytes] = []
     started = time.monotonic()
     first_frame_at: float | None = None
     probe_sent = False
@@ -234,10 +245,16 @@ def main() -> int:
                 # send the probes once, a few seconds in, so the idle baseline
                 # is recorded first
                 elapsed_now = time.monotonic() - started
-                if (args.probe or args.fault_log) and not probe_sent and elapsed_now > 5:
+                probing = args.probe or args.fault_log or args.fault_log_sweep
+                if probing and not probe_sent and elapsed_now > 5:
                     probes = dict(PROBES)
                     if args.fault_log:
                         probes.update(FAULT_LOG_PROBES)
+                    if args.fault_log_sweep:
+                        for index in range(FAULT_LOG_SWEEP_MAX):
+                            probes[f"fault_entry_{index:02d}"] = bytes(
+                                [0x0A, 0xBF, 0x22, 0x20, index, 0x00]
+                            )
                     for name, payload in probes.items():
                         frame = build_frame(payload)
                         sock.sendall(frame)
@@ -272,6 +289,7 @@ def main() -> int:
                         print(f"    MAC ADDRESS FOUND: {mac}")
                     if fault := describe_fault(payload):
                         faults.append(fault)
+                        fault_payloads.append(payload[3:])
                         print(f"    FAULT LOG: {fault}")
 
                     record = {
@@ -333,6 +351,27 @@ def main() -> int:
             print("  1. MAC address available    : UNKNOWN -- rerun with --probe")
         print("     The entry_id fallback becomes the normal path. This is expected")
         print("     for RS-485 setups and the design accounts for it.")
+
+    if args.fault_log_sweep and fault_payloads:
+        print("  4. Fault log sweep")
+        print(f"       answers received : {len(fault_payloads)}")
+        # Ignore the echoed index so identical entries are recognised as such.
+        bodies = [p[2:] for p in fault_payloads]
+        distinct: list[bytes] = []
+        first_repeat = None
+        for position, body in enumerate(bodies):
+            if body in distinct and first_repeat is None:
+                first_repeat = position
+            if body not in distinct:
+                distinct.append(body)
+        print(f"       distinct entries : {len(distinct)}")
+        print(f"       first repeat at  : {first_repeat}")
+        counters = {p[0] for p in fault_payloads}
+        print(f"       counter values   : {sorted(counters)}")
+        print()
+        for line in faults:
+            print(f"       {line}")
+        print()
 
     if args.fault_log:
         if faults:
