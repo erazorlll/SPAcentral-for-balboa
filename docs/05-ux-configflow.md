@@ -3,25 +3,25 @@
 ## 1. Installationsweg
 
 Über HACS als Custom Repository, danach *Einstellungen → Geräte & Dienste →
-Integration hinzufügen → Balboa Link*. Kein Add-on, kein Container, kein MQTT-Broker.
+Integration hinzufügen → Balboa SPAcentral*. Kein Add-on, kein Container, kein MQTT-Broker.
 
 ## 2. Einrichtung
 
 ```mermaid
 flowchart TD
-    S[Integration hinzufügen] --> D{Discovery-Treffer?}
-    D -->|ja| C[Bestätigen: 'Spa unter 10.0.0.5 gefunden']
-    D -->|nein| T[Schritt 1: Anschlussart wählen]
-    C --> OK[Fertig]
-    T --> T1[Balboa WLAN-Modul]
+    S[Integration hinzufügen] --> T[Schritt 1: Anschlussart wählen]
     T --> T2[Serieller Gateway im Netz]
+    T --> T1[Balboa WLAN-Modul]
     T --> T3[Serieller Adapter lokal]
-    T1 --> F1[Host] --> V[Verbindungstest]
-    T2 --> F2[Host + Port · Vorgabe 8899] --> V
+    T2 --> F2[Host + Port · Vorgabe 8899] --> V[Verbindungstest]
+    T1 --> F1[Host · Port 4257] --> V
     T3 --> F3[Geräteauswahl aus /dev/serial/by-id] --> V
-    V -->|erfolgreich| N[Name vorschlagen: Modell] --> OK
+    V -->|erfolgreich| N[Name vorschlagen: Modell] --> OK[Fertig]
     V -->|Fehler| E[Klartextfehler + zurück]
 ```
+
+Der serielle Gateway steht bewusst an erster Stelle — er ist der Aufbau, für den diese
+Integration entsteht, und der einzige, den bestehende Lösungen nicht bedienen.
 
 ### Schritt 1 — Anschlussart
 
@@ -73,16 +73,23 @@ Add-on.
 Umbenennen später: *Einstellungen → Geräte & Dienste → Umbenennen*, wirkungslos für die
 Entity-Identität (siehe [03-geraeteidentitaet.md](03-geraeteidentitaet.md)).
 
-## 4. Discovery
+## 4. Discovery — auf später verschoben
+
+Zwei Verfahren wären möglich, beide **ausschließlich für das Balboa-WLAN-Modul**:
 
 | Quelle | Wirkung |
 |---|---|
-| **UDP 30303** Broadcast beim Öffnen des Dialogs | gefundene Balboa-WLAN-Module werden direkt zur Bestätigung angeboten, MAC inklusive |
+| **UDP 30303** Broadcast | gefundene Module werden zur Bestätigung angeboten, MAC inklusive |
 | **DHCP** (`macaddress: 001527*` im Manifest) | HA schlägt neu aufgetauchte Module von selbst vor |
 
-Für Gateway- und Serienaufbauten gibt es keine Discovery — hardwarebedingt, siehe Analyse.
-Der Dialog sagt das aktiv: „Kein Spa automatisch gefunden. Wenn du einen seriellen Adapter
-verwendest, ist das normal — bitte manuell einrichten."
+Für Gateway- und Serienaufbauten gibt es hardwarebedingt keine Discovery: Der Adapter trägt
+die MAC seines eigenen Herstellers und ist eine generische Brücke ohne Balboa-Kennung.
+
+**Beides ist nicht Teil des Erstumfangs.** Ohne WLAN-Modul zum Testen wäre es Code, der in
+fremden Installationen ungefragt Einrichtungsvorschläge erzeugt, ohne je verifiziert worden
+zu sein. Nachgezogen wird es, sobald jemand mit passender Hardware testen kann; die
+Anknüpfungspunkte im Config Flow (`async_step_dhcp`, `async_step_integration_discovery`)
+sind im Entwurf vorgesehen.
 
 ## 5. Optionen (nachträglich änderbar)
 

@@ -14,7 +14,7 @@ Messlatte.
 | Silver | Fehlererholung | Reconnect mit Backoff, Stale-Erkennung |
 | Silver | Reauth | entfällt — das Protokoll kennt keine Authentifizierung |
 | Silver | Aktiver Code-Owner | `codeowners` im Manifest |
-| Gold | Discovery | UDP 30303 + DHCP-OUI |
+| Gold | Discovery | ⏸ zurückgestellt — nur mit WLAN-Modul möglich, nicht verifizierbar |
 | Gold | Rekonfiguration | `async_step_reconfigure` |
 | Gold | Übersetzungen | `strings.json` + `translations/{en,de}.json` |
 | Gold | Diagnose | `diagnostics.py` mit Redaction |
@@ -37,10 +37,15 @@ Home Assistant testbar, die HA-Schicht ohne echte Hardware.
 | Arbitrierung | `IMMEDIATE` schreibt sofort; `TOKEN` schreibt erst nach `Ready`; Timeout ohne `Ready` löst Warnung aus |
 | Zustandsmaschine | Reconnect-Backoff-Folge, Stale-Erkennung, Handshake ohne Modul-Identifikation |
 
-**Fixtures aus echten Aufzeichnungen.** Vor der Umsetzung werden Rohdaten mitgeschnitten:
-eine Sitzung über das WLAN-Modul, eine über den EW11. Diese Byteströme sind die Grundlage
-aller Parsertests — synthetische Testdaten würden genau die Abweichungen verdecken, um die
-es geht.
+**Fixtures aus echten Aufzeichnungen.** Vor der Umsetzung werden Rohdaten über den EW11
+mitgeschnitten — im Ruhezustand und während der Bedienung am Spa-Panel. Diese Byteströme
+sind die Grundlage aller Parsertests; synthetische Testdaten würden genau die Abweichungen
+verdecken, um die es geht.
+
+Für das Balboa-WLAN-Modul stehen keine eigenen Aufzeichnungen zur Verfügung. Die
+Parsertests dafür stützen sich auf die Referenzframes aus `doc/protocol.md` des Gems.
+Das genügt für die Protokollebene, ersetzt aber keinen Hardwaretest — siehe
+[08-validierung.md](08-validierung.md) §7.
 
 ### Ebene 2 — Integration (`pytest-homeassistant-custom-component`)
 
@@ -57,13 +62,19 @@ es geht.
 
 Eine Testmatrix, die vor jedem Release durchlaufen wird:
 
-| Aufbau | Lesen | Schreiben | Reconnect |
-|---|---|---|---|
-| Balboa WLAN-Modul, TCP 4257 | ☐ | ☐ | ☐ |
-| EW11, TCP-Server 8899 | ☐ | ☐ | ☐ |
-| EW11 mit `TOKEN`-Arbitrierung | ☐ | ☐ | ☐ |
-| USB-RS-485-Adapter lokal | ☐ | ☐ | ☐ |
-| Zwei Instanzen gleichzeitig | ☐ | ☐ | ☐ |
+| Aufbau | Lesen | Schreiben | Reconnect | Prüfbar |
+|---|---|---|---|---|
+| EW11, TCP-Server 8899 | ☐ | ☐ | ☐ | ✅ eigene Hardware |
+| EW11 mit `TOKEN`-Arbitrierung | ☐ | ☐ | ☐ | ✅ eigene Hardware |
+| Zwei Instanzen gleichzeitig | ☐ | ☐ | ☐ | ✅ zwei Becken vorhanden |
+| EW11 stromlos → Reconnect | ☐ | ☐ | ☐ | ✅ eigene Hardware |
+| Balboa WLAN-Modul, TCP 4257 | — | — | — | ❌ **keine Hardware** |
+| USB-RS-485-Adapter lokal | — | — | — | ❌ keine Hardware |
+
+Die beiden unteren Zeilen bleiben dauerhaft offen. Sie werden im Release nicht als
+„getestet" ausgewiesen, sondern als **unterstützt laut Entwurf, nicht auf Hardware
+verifiziert** — mit der Bitte um Rückmeldung im README. Alles andere wäre ein
+Qualitätsversprechen, das niemand eingelöst hat.
 
 ## 3. Continuous Integration
 

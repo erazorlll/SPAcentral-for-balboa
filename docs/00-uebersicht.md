@@ -64,8 +64,20 @@ Baustein und ein Abfrageintervall eine Scheinoption. Entities abonnieren ein Upd
 | [07-roadmap.md](07-roadmap.md) | Phasen, Aufwand, Ausbaustufen |
 | [08-validierung.md](08-validierung.md) | Kritische Prüfung, Risiken, Abbruchkriterien |
 
+## Verfügbare Hardware
+
+Zwei Balboa-Anlagen, beide über einen **Elfin EW11** angebunden. Kein Balboa-WLAN-Modul.
+
+Das trifft sich günstig: Der EW11 ist genau der Aufbau, den keine bestehende
+Python-Lösung bedient — dort liegt das Neuland, und dort wird auf echter Hardware getestet,
+einschließlich zweier gleichzeitiger Instanzen. Der WLAN-Modul-Pfad nutzt denselben
+Transport und denselben Parser und wird durch dieselben Tests abgedeckt, bleibt aber
+mangels Hardware als **„unterstützt laut Entwurf, nicht verifiziert"** gekennzeichnet.
+Discovery ist deshalb aus dem Erstumfang genommen. Begründung in
+[08-validierung.md](08-validierung.md) §7.
+
 ## Status
 
 **Konzeptphase. Noch kein Code.** Der erste Umsetzungsschritt ist bewusst kein Code,
-sondern eine Aufzeichnung echter Byteströme von beiden Aufbauten — sie beantwortet die
-einzige offene Entwurfsfrage und liefert zugleich sämtliche Testfixtures.
+sondern die Aufzeichnung echter Byteströme über den EW11 — sie beantwortet die einzige
+offene Entwurfsfrage und liefert zugleich sämtliche Testfixtures.

@@ -10,15 +10,20 @@ darauf auf. Wer mit dem Config Flow beginnt, testet gegen Vermutungen.
 **Vor jeder Zeile Code.** Rohdaten mitschneiden:
 
 ```bash
-# WLAN-Modul
-nc 10.0.0.5 4257 | xxd > fixtures/wifi_module.hex
-# EW11
-nc 10.0.0.9 8899 | xxd > fixtures/ew11.hex
+nc 10.0.0.9 8899 | xxd > fixtures/ew11_idle.hex      # ~60 s Ruhezustand
+nc 10.0.0.9 8899 | xxd > fixtures/ew11_control.hex   # mit Bedienung am Spa-Panel
 ```
 
-Jeweils ~60 Sekunden im Ruhezustand, dann mit Bedienung am Spa-Panel (Pumpe an/aus,
-Temperatur ändern). Diese Dateien sind die Grundlage aller Parsertests und **beantworten
-nebenbei die offene Frage**, ob über den EW11 eine Configuration Response mit MAC eintrifft.
+Für die zweite Aufzeichnung am Panel: Pumpe 1 durchschalten (aus → Stufe 1 → Stufe 2 → aus),
+Licht an/aus, Solltemperatur ändern, Heizmodus umschalten. Das liefert die Fixtures für die
+Toggle-Logik mehrstufiger Pumpen (Risiko R3).
+
+Diese Dateien sind die Grundlage aller Parsertests und **beantworten die offene Frage**,
+ob über den EW11 eine Configuration Response (`0A BF 94`) mit MAC-Adresse eintrifft.
+
+> **Nur der EW11-Pfad ist auf eigener Hardware prüfbar** — ein Balboa-WLAN-Modul steht nicht
+> zur Verfügung. Die Folgen für Testmatrix und Umfang stehen in
+> [08-validierung.md](08-validierung.md) §7.
 
 **Ohne diesen Schritt bleibt eine zentrale Entwurfsannahme ungeprüft.**
 
@@ -48,10 +53,16 @@ einrichten, Temperatur wird angezeigt.
 `time`, `number`, `event`, `button`, Filterzyklus-Konfiguration, Zeitsynchronisation,
 Diagnose, Übersetzungen (en/de), Reparaturhinweise.
 
-### Phase 5 — Discovery und Politur (1–2 Tage)
+### Phase 5 — Politur (1 Tag)
 
-UDP-30303-Discovery, DHCP-Discovery, Rekonfiguration, Snapshot-Tests, README mit
-Aufbauanleitungen je Hardware, Umstiegsanleitung von bwalink/MQTT.
+Rekonfiguration, Snapshot-Tests, README mit Aufbauanleitungen je Hardware,
+Umstiegsanleitung von bwalink/MQTT.
+
+**Discovery ist hier bewusst nicht enthalten.** UDP-30303- und DHCP-Discovery funktionieren
+ausschließlich mit dem Balboa-WLAN-Modul und wären auf der verfügbaren Hardware nicht
+prüfbar. Nicht verifizierbarer Code, der ungefragt Einrichtungsvorschläge in fremden
+Installationen erzeugt, ist ein schlechter Tausch für einen Punkt auf der Qualitätsskala.
+→ verschoben in die Ausbaustufen, umzusetzen wenn ein Nutzer mit WLAN-Modul testen kann.
 
 ### Phase 6 — Veröffentlichung (1 Tag)
 
@@ -66,17 +77,18 @@ HACS-Metadaten, CI-Workflows, erstes Release, Einreichung als HACS-Default-Repos
 | 2 HA-Grundgerüst | 2 PT |
 | 3 Steuerung | 3 PT |
 | 4 Feinschliff | 2 PT |
-| 5 Discovery & Politur | 2 PT |
+| 5 Politur | 1 PT |
 | 6 Veröffentlichung | 1 PT |
-| **Summe** | **≈ 14,5 PT** |
+| **Summe** | **≈ 13,5 PT** |
 
 Erster produktiv nutzbarer Stand nach Phase 3, also **≈ 9,5 PT**.
 
 ## 3. Optionale Ausbaustufen
 
-| Idee | Nutzen | Aufwand |
-|---|---|---|
-| `Rfc2217Transport` | Gateways mit korrekter rfc2217-Firmware | 1 PT |
+| Idee | Nutzen | Aufwand | Voraussetzung |
+|---|---|---|---|
+| **UDP-30303- und DHCP-Discovery** | Einrichtung ohne IP-Eingabe für WLAN-Modul-Nutzer | 1 PT | **Tester mit Balboa-WLAN-Modul** |
+| `Rfc2217Transport` | Gateways mit korrekter rfc2217-Firmware | 1 PT | |
 | ESPHome-Serial-Proxy als Transport | Anbindung über vorhandene ESPHome-Knoten | 1,5 PT |
 | Transport-Abstraktion an `pybalboa` beitragen | die eigene Bibliothek würde langfristig entbehrlich | 2 PT + Wartezeit |
 | Einreichung als HA-Core-Integration | Installation ohne HACS | hoch, erst nach Reifung |

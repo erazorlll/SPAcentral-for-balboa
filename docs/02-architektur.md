@@ -4,7 +4,7 @@
 
 ```
 Home Assistant
-└── custom_components/balboa_link/
+└── custom_components/balboa_spacentral/
     ├── Plattformen        climate · water_heater · switch · fan · light ·
     │                      select · number · sensor · binary_sensor · event · time · button
     ├── entity.py          gemeinsame Basisklasse (DeviceInfo, Verfügbarkeit, Push)

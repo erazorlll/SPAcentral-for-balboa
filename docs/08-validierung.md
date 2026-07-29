@@ -7,8 +7,8 @@ Kritische Selbstprüfung. Was hält, was wackelt, was ist ungeprüft.
 | Ziel | Erfüllt | Wodurch |
 |---|:--:|---|
 | Vorteile beider Vorbilder kombinieren | ✅ | Transportvielfalt + Arbitrierung vom Gem, natives HA-Modell von pybalboa, Entity-Abdeckung und Namensabfrage von smartspaclient |
-| Originales Balboa-WLAN-Modul | ✅ | `TcpTransport` Port 4257 + UDP/DHCP-Discovery |
-| EW11-Lösung | ⚠️ | `TcpTransport` mit freiem Port — belegt durch Issue #73, aber nicht von mir selbst verifiziert |
+| Originales Balboa-WLAN-Modul | ⚠️ | `TcpTransport` Port 4257 — derselbe Code wie beim EW11, aber **mangels Hardware nicht verifizierbar** (§7) |
+| EW11-Lösung | ✅ | `TcpTransport` mit freiem Port — der Pfad, der tatsächlich getestet wird |
 | Per HACS installierbar | ✅ | Standard-Repo-Layout, `hacs.json`, Validierungs-Workflow |
 | Konfigurierbar per Oberfläche | ✅ | Config Flow mit drei Anschlussarten, Optionen, Rekonfiguration |
 | Zwei Instanzen | ✅ | Config Entries, strukturell unbegrenzt |
@@ -40,7 +40,7 @@ Phase 0 beantwortet die Frage nebenbei durch die Aufzeichnung.
 | # | Risiko | Schwere | Gegenmaßnahme |
 |---|---|---|---|
 | **R1** | **Eigene Protokollbibliothek** statt `pybalboa` — mehr Code in eigener Verantwortung, entgegen dem Ziel „einfach wartbar" | hoch | Das Protokoll ist eingefroren (Hardware erhält keine Updates), vollständig dokumentiert und wird gegen echte Aufzeichnungen getestet. Die Schnittstelle zu `balboa/client.py` ist schmal genug, um später doch auf `pybalboa` zu wechseln. **Ehrlich bleibt: das ist ein bewusster Tausch von Abhängigkeit gegen Kontrolle, kein kostenloser Gewinn.** |
-| **R2** | **Kanalkonflikt**: Der Client sendet mit Quelladresse `0x0A`. Ist gleichzeitig ein echtes Balboa-WLAN-Modul am Bus, könnten beide denselben Kanal beanspruchen | mittel | In Phase 0 prüfen. Symptom wären sporadisch verworfene Befehle. Falls bestätigt: Kanalverhandlung über `New Client Clear To Send` implementieren statt `0x0A` fest anzunehmen |
+| **R2** | **Kanalkonflikt**: Der Client sendet mit Quelladresse `0x0A`. Ist gleichzeitig ein echtes Balboa-WLAN-Modul am Bus, könnten beide denselben Kanal beanspruchen | ~~mittel~~ **entfällt** | Im hiesigen Aufbau ist **kein WLAN-Modul vorhanden** — Kanal `0x0A` ist frei und kann gefahrlos belegt werden. Das Risiko bleibt nur für fremde Installationen, die beides parallel betreiben; dafür ist die Kanalverhandlung über `New Client Clear To Send` als Ausbaustufe vorgemerkt |
 | **R3** | **Mehrstufige Pumpen** werden per Toggle-Schleife gesetzt — anfällig für verlorene Frames und Rennbedingungen | mittel | Obergrenze für Toggles, Timeout, `assumed_state` während des Vorgangs, Abbruch bei Zielerreichung. Fixtures mit Pumpenschaltvorgängen aus Phase 0 |
 | **R4** | **`TOKEN`-Arbitrierung** ist nur aus dem Gem abgeleitet, nicht selbst erprobt | mittel | Sicherheitsnetz: 30 s ohne `Ready` erzeugt einen Reparaturhinweis statt stiller Funkstille. Vorgabe für TCP bleibt `IMMEDIATE`, also der belegte Pfad |
 | **R5** | **Aufwandsschätzung** 14,5 PT ist für eine erstmalige Protokollimplementierung optimistisch | mittel | Phase 0 und 1 sind die Unsicherheit; nach Phase 1 ist der Rest gut kalkulierbar. Realistischer Korridor: 14–22 PT |
@@ -111,9 +111,44 @@ Alle drei sind nach **Phase 0 und 1** entscheidbar — also nach etwa 4,5 Person
 vor der eigentlichen Investition. Das ist der wesentliche Punkt: Der Plan legt die
 Unsicherheit an den Anfang, nicht ans Ende.
 
-## 7. Nächste Schritte
+## 7. Verfügbare Hardware und ihre Folgen
 
-1. **Phase 0 durchführen** — Aufzeichnungen von beiden Aufbauten. Beantwortet die MAC-Frage,
-   liefert R2- und R3-Erkenntnisse und alle Testfixtures.
-2. Ergebnis gegen dieses Dokument halten und die drei Abbruchkriterien prüfen.
+Zur Verfügung stehen **zwei Balboa-Anlagen, beide über einen Elfin EW11** angebunden.
+Ein originales Balboa-WLAN-Modul gibt es nicht. Das hat vier Konsequenzen:
+
+**1. Der wichtigste Pfad ist der testbare.** Der EW11 ist genau der Aufbau, den keine der
+bestehenden Python-Lösungen bedient — und er wird auf echter Hardware verifiziert,
+einschließlich zweier gleichzeitiger Instanzen. Das ist die günstige Verteilung: getestet
+wird dort, wo Neuland ist.
+
+**2. Das WLAN-Modul bleibt unverifiziert — mit geringem Risiko.** Beide Anschlussarten
+nutzen **denselben** `TcpTransport` mit demselben Framing und demselben Parser; sie
+unterscheiden sich nur in der Portvorgabe und im voreingestellten Sendeverfahren. Der Code
+wird also durch die EW11-Tests weitgehend mit abgedeckt. Ungetestet bleiben genau zwei
+Dinge: die Portvorgabe 4257 und die Annahme, dass das Modul dieselben Frames liefert —
+Letzteres ist durch `pybalboa` und die HA-Core-Integration unabhängig belegt.
+→ Im README wird das WLAN-Modul als **„unterstützt laut Entwurf, nicht auf Hardware
+verifiziert"** ausgewiesen, nicht als getestet.
+
+**3. Discovery fliegt aus dem Erstumfang.** UDP-30303- und DHCP-Discovery funktionieren
+ausschließlich mit dem WLAN-Modul. Nicht verifizierbarer Code, der in fremden
+Installationen ungefragt Einrichtungsvorschläge erzeugt, ist ein schlechter Tausch für
+einen Punkt auf der Qualitätsskala. Verschoben in die Ausbaustufen, Voraussetzung: ein
+Tester mit passender Hardware.
+
+**4. Risiko R2 entfällt.** Ohne WLAN-Modul am Bus ist Kanal `0x0A` unbesetzt, ein
+Kanalkonflikt kann im eigenen Aufbau nicht auftreten. Die Kanalverhandlung wird damit von
+einer möglichen Pflichtaufgabe zu einer optionalen Ausbaustufe für Fremdinstallationen.
+
+**Was dadurch nicht kleiner wird:** Die offene MAC-Frage aus §2 betrifft ausschließlich den
+EW11-Pfad — sie wird also vollständig beantwortet. Und da im eigenen Aufbau ohnehin kein
+WLAN-Modul existiert, ist die Wahrscheinlichkeit hoch, dass der `entry_id`-Rückfall der
+Normalfall wird. Genau dafür wurde er entworfen.
+
+## 8. Nächste Schritte
+
+1. **Phase 0 durchführen** — zwei Aufzeichnungen über den EW11 (Ruhezustand und Bedienung
+   am Panel). Beantwortet die MAC-Frage, liefert die Fixtures für die Toggle-Logik
+   mehrstufiger Pumpen (R3) und alle Parsertests.
+2. Ergebnis gegen dieses Dokument halten und die drei Abbruchkriterien aus §6 prüfen.
 3. Erst dann mit Phase 1 beginnen.
