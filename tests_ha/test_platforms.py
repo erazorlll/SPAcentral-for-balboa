@@ -177,7 +177,9 @@ async def test_setting_the_temperature_sends_a_command(hass: HomeAssistant, spa)
     )
     assert len(transport.written) > before
     # 0x44 = 68 = 34.0 °C in half degrees
-    assert transport.written[-1][3:6].hex() == "bf2044"
+    # The background fault log sweep also writes, so look for the command
+    # rather than assuming it is the very last frame.
+    assert any(f[3:6].hex() == "bf2044" for f in transport.written)
 
 
 async def test_pump_is_off_and_can_be_switched_on(hass: HomeAssistant, spa) -> None:
@@ -192,7 +194,7 @@ async def test_pump_is_off_and_can_be_switched_on(hass: HomeAssistant, spa) -> N
         blocking=True,
     )
     assert len(transport.written) > before
-    assert transport.written[-1][3:6].hex() == "bf1104"  # toggle pump 1
+    assert any(f[3:6].hex() == "bf1104" for f in transport.written)  # toggle pump 1
 
 
 async def test_single_speed_pump_has_one_speed(hass: HomeAssistant, spa) -> None:
@@ -211,7 +213,7 @@ async def test_light_can_be_switched(hass: HomeAssistant, spa) -> None:
         {ATTR_ENTITY_ID: "light.whirlpool_light_1"},
         blocking=True,
     )
-    assert transport.written[-1][3:6].hex() == "bf1111"  # toggle light 1
+    assert any(f[3:6].hex() == "bf1111" for f in transport.written)  # toggle light 1
 
 
 async def test_binary_sensors_follow_the_capture(hass: HomeAssistant, spa) -> None:
