@@ -18,9 +18,13 @@ async def async_setup_entry(
     entry: SpaConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Only offered once the controller has told us its cycles."""
-    if entry.runtime_data.state.filter_cycles is None:
-        return
+    """Always created.
+
+    Waiting for the filter cycle frame would make the entities depend on a
+    message that can be lost to a bus collision -- and unlike the configuration
+    gap-filler, platform setup runs only once, so they would never appear at
+    all. They report unknown until the frame arrives instead.
+    """
     async_add_entities(BalboaFilterCycleStart(entry, cycle) for cycle in (1, 2))
 
 

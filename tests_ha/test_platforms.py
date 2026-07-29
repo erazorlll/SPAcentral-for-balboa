@@ -35,6 +35,7 @@ from custom_components.balboa_spacentral.balboa.framing import FrameReader
 from custom_components.balboa_spacentral.balboa.messages import (
     ControlConfiguration,
     ControlConfiguration2,
+    FilterCycles,
     StatusUpdate,
     parse_frame,
 )
@@ -95,6 +96,7 @@ async def spa(hass: HomeAssistant):
     frames = (
         _frames("ew11_probe", ControlConfiguration)
         + _frames("ew11_probe", ControlConfiguration2)
+        + _frames("ew11_probe", FilterCycles)
         + _frames("ew11_idle", StatusUpdate)
     )
     transport = ReplayTransport(frames)
@@ -318,3 +320,44 @@ async def test_diagnostics_hide_the_address(hass: HomeAssistant, spa) -> None:
     assert data["spa"]["has_mac"] is False
     assert data["entry"]["identity_key_is_entry_id"] is True
     assert data["connection"]["crc_errors"] == 0
+
+
+async def test_filter_cycle_entities_exist_without_the_frame(
+    hass: HomeAssistant,
+) -> None:
+    """A lost filter cycle frame must not make the entities disappear forever.
+
+    Platform setup runs once, so anything conditional on a frame that can be
+    lost to a bus collision would never come back.
+    """
+    frames = (
+        _frames("ew11_probe", ControlConfiguration)
+        + _frames("ew11_probe", ControlConfiguration2)
+        + _frames("ew11_idle", StatusUpdate)
+    )  # deliberately no FilterCycles
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Pool",
+        data={
+            CONF_CONNECTION: CONNECTION_GATEWAY,
+            CONF_HOST: "192.168.0.23",
+            CONF_PORT: 8899,
+            CONF_IDENTITY_SOURCE: IDENTITY_ENTRY_ID,
+        },
+    )
+    entry.add_to_hass(hass)
+
+    with patch(
+        "custom_components.balboa_spacentral.build_transport",
+        return_value=ReplayTransport(frames),
+    ):
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+    try:
+        state = hass.states.get("time.pool_filter_cycle_1_start")
+        assert state is not None, "entity must exist even without the frame"
+        assert state.state == "unknown"
+    finally:
+        await hass.config_entries.async_unload(entry.entry_id)
+        await hass.async_block_till_done()

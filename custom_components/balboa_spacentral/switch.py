@@ -29,8 +29,9 @@ async def async_setup_entry(
     ]
     if state.has_mister:
         entities.append(BalboaMister(entry))
-    if state.filter_cycles is not None:
-        entities.append(BalboaFilterCycle2(entry))
+    # Always added: see the note in time.py -- the filter cycle frame can be
+    # lost, and platform setup does not run again.
+    entities.append(BalboaFilterCycle2(entry))
     async_add_entities(entities)
 
 
