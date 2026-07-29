@@ -30,6 +30,8 @@ Serialisierung, Transporte (TCP + Serial), Client-Zustandsmaschine, Discovery, C
 | Alle Nachrichtentypen der Aufzeichnungen modelliert | ja, null unbekannte bei 34 616 Frames |
 | CLI zeigt den Spa-Zustand live | ja, gegen abgespielte Echtdaten verifiziert |
 | Zustandsänderungen werden gemeldet | ja, 17 Wechsel im Panel-Mitschnitt erkannt |
+| **Lesen an echter Hardware** | ✅ EW11, 192.168.0.56 — Modell, Hardware, Temperaturen, Uhr |
+| **Schreiben an echter Hardware** | ✅ `--toggle light1` schaltet, Zustand kommt zurück |
 
 Verifiziert über [`tools/replay.py`](../tools/replay.py): Die Aufzeichnungen werden über
 einen echten TCP-Socket abgespielt, das CLI verbindet sich, führt den Handshake durch,
