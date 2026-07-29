@@ -21,7 +21,9 @@ class BalboaEntity(Entity):
         self._entry = entry
         self._client: SpaClient = entry.runtime_data
         self._attr_unique_id = entity_unique_id(entry, key)
-        self._attr_translation_key = key
+        # Optional: an entity standing for the device itself clears this and
+        # carries the device name instead.
+        self._attr_translation_key: str | None = key
 
         connections = set()
         if mac := entry.data.get(CONF_MAC):
