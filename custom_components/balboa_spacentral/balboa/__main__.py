@@ -71,6 +71,24 @@ def _render(state: SpaState, available: bool) -> str:
     return "\n".join(lines)
 
 
+def _item_names() -> list[str]:
+    """Item names in the spelling the command line accepts."""
+    return [item.name.lower().replace("_", "") for item in ToggleItem]
+
+
+def _parse_item(name: str) -> ToggleItem | None:
+    """Resolve an item name, accepting `light1`, `light_1` and `LIGHT_1` alike.
+
+    The enum members carry an underscore before the index, which is not how
+    anyone types it.
+    """
+    wanted = name.strip().lower().replace("_", "").replace("-", "")
+    for item in ToggleItem:
+        if item.name.lower().replace("_", "") == wanted:
+            return item
+    return None
+
+
 async def _run(args: argparse.Namespace) -> int:
     transport: Transport = (
         SerialTransport(args.target)
@@ -90,7 +108,11 @@ async def _run(args: argparse.Namespace) -> int:
 
     try:
         if args.toggle:
-            item = ToggleItem[args.toggle.upper()]
+            item = _parse_item(args.toggle)
+            if item is None:
+                print(f"\nunknown item: {args.toggle}")
+                print(f"available: {', '.join(_item_names())}")
+                return 1
             print(f"\ntoggling {item.name.lower()} ...")
             await client.toggle_item(item)
             await asyncio.sleep(2)
@@ -119,7 +141,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("target", nargs="?", help="IP address or serial device")
     parser.add_argument("--port", type=int, default=GATEWAY_PORT)
     parser.add_argument("--serial", action="store_true", help="target is a serial device")
-    parser.add_argument("--toggle", metavar="ITEM", help="e.g. pump1, light1, blower")
+    parser.add_argument(
+        "--toggle",
+        metavar="ITEM",
+        help=f"one of: {', '.join(_item_names())}",
+    )
     parser.add_argument(
         "--discover", action="store_true", help="search for Wi-Fi modules"
     )

@@ -129,3 +129,40 @@ def test_main_discover_lists_findings(
 def test_main_reports_a_failed_connection() -> None:
     """Port 1 on loopback refuses, so this exercises the failure path."""
     assert main(["127.0.0.1", "--port", "1"]) == 1
+
+
+@pytest.mark.parametrize(
+    ("given", "expected"),
+    [
+        ("light1", "LIGHT_1"),
+        ("LIGHT_1", "LIGHT_1"),
+        ("light_1", "LIGHT_1"),
+        ("Pump-2", "PUMP_2"),
+        ("blower", "BLOWER"),
+        ("heatingmode", "HEATING_MODE"),
+        ("temperature_range", "TEMPERATURE_RANGE"),
+        (" soak ", "SOAK"),
+    ],
+)
+def test_item_names_are_forgiving(given: str, expected: str) -> None:
+    """Members are spelled LIGHT_1, nobody types it that way."""
+    from balboa.__main__ import _parse_item
+
+    item = _parse_item(given)
+    assert item is not None
+    assert item.name == expected
+
+
+def test_unknown_item_is_rejected() -> None:
+    from balboa.__main__ import _parse_item
+
+    assert _parse_item("nonsense") is None
+
+
+def test_item_names_are_listed_for_the_user() -> None:
+    from balboa.__main__ import _item_names
+
+    names = _item_names()
+    assert "light1" in names
+    assert "pump1" in names
+    assert all("_" not in name for name in names)
