@@ -43,12 +43,26 @@ PROBES: dict[str, bytes] = {
     "filter_cycles": bytes([0x0A, 0xBF, 0x22, 0x01, 0x00, 0x00]),
 }
 
+# The first payload byte selects which answer you get: 0x02 control
+# configuration, 0x01 filter cycles, 0x20 the fault log. So it is a selector,
+# not an entry number -- asking for "entry 1" with 0x01 would just return the
+# filter cycles again.
+#
+# Where the entry number lives is unknown, so these probe the two plausible
+# places without disturbing the other selectors.
+FAULT_LOG_PROBES: dict[str, bytes] = {
+    "fault_log_latest": bytes([0x0A, 0xBF, 0x22, 0x20, 0x00, 0x00]),
+    "fault_log_byte1_is_1": bytes([0x0A, 0xBF, 0x22, 0x20, 0x01, 0x00]),
+    "fault_log_byte2_is_1": bytes([0x0A, 0xBF, 0x22, 0x20, 0x00, 0x01]),
+}
+
 MESSAGE_TYPES: dict[bytes, str] = {
     bytes([0xAF, 0x13]): "status_update",
     bytes([0xBF, 0x94]): "configuration_response  <-- carries the MAC",
     bytes([0xBF, 0x24]): "control_configuration (model, version)",
     bytes([0xBF, 0x2E]): "control_configuration_2 (pumps, lights, blower)",
     bytes([0xBF, 0x23]): "filter_cycles",
+    bytes([0xBF, 0x28]): "FAULT LOG ENTRY",
     bytes([0xBF, 0xE1]): "error",
     bytes([0xBF, 0x06]): "READY  <-- RS-485 arbitration token",
     bytes([0xBF, 0x07]): "nothing_to_send",
@@ -84,6 +98,18 @@ def describe(payload: bytes) -> str:
     if len(payload) < 3:
         return "too_short"
     return MESSAGE_TYPES.get(payload[1:3], f"unknown_{payload[1]:02x}{payload[2]:02x}")
+
+
+def describe_fault(payload: bytes) -> str | None:
+    """Decode a fault log entry, if that is what this frame is."""
+    if payload[1:3] != bytes([0xBF, 0x28]) or len(payload) < 13:
+        return None
+    d = payload[3:]
+    return (
+        f"entry {d[1] + 1}/{d[0]}  code {d[2]}  {d[3]} days ago  "
+        f"{d[4]:02d}:{d[5]:02d}  flags 0x{d[6]:02x}  "
+        f"set {d[7]}  sensorA {d[8]}  sensorB {d[9]}"
+    )
 
 
 def extract_mac(payload: bytes) -> str | None:
@@ -164,6 +190,11 @@ def main() -> int:
         action="store_true",
         help="send the four startup requests to see whether they are answered",
     )
+    parser.add_argument(
+        "--fault-log",
+        action="store_true",
+        help="also ask for fault log entries (implies --probe)",
+    )
     parser.add_argument("--outdir", default="fixtures", help="output directory")
     args = parser.parse_args()
 
@@ -187,6 +218,7 @@ def main() -> int:
     reader = FrameReader()
     counts: Counter[str] = Counter()
     macs: set[str] = set()
+    faults: list[str] = []
     started = time.monotonic()
     first_frame_at: float | None = None
     probe_sent = False
@@ -201,8 +233,11 @@ def main() -> int:
                 # send the probes once, a few seconds in, so the idle baseline
                 # is recorded first
                 elapsed_now = time.monotonic() - started
-                if args.probe and not probe_sent and elapsed_now > 5:
-                    for name, payload in PROBES.items():
+                if (args.probe or args.fault_log) and not probe_sent and elapsed_now > 5:
+                    probes = dict(PROBES)
+                    if args.fault_log:
+                        probes.update(FAULT_LOG_PROBES)
+                    for name, payload in probes.items():
                         frame = build_frame(payload)
                         sock.sendall(frame)
                         line = f"--> SENT {name}: {frame.hex(' ')}"
@@ -233,6 +268,9 @@ def main() -> int:
                     if mac := extract_mac(payload):
                         macs.add(mac)
                         print(f"    MAC ADDRESS FOUND: {mac}")
+                    if fault := describe_fault(payload):
+                        faults.append(fault)
+                        print(f"    FAULT LOG: {fault}")
 
                     record = {
                         "t": round(now - started, 3),
@@ -287,6 +325,15 @@ def main() -> int:
             print("  1. MAC address available    : UNKNOWN -- rerun with --probe")
         print("     The entry_id fallback becomes the normal path. This is expected")
         print("     for RS-485 setups and the design accounts for it.")
+
+    if args.fault_log:
+        if faults:
+            print(f"  4. Fault log                : YES ({len(faults)} entries)")
+            for line in faults:
+                print(f"       {line}")
+        else:
+            print("  4. Fault log                : no response to the request")
+        print()
 
     ready = sum(v for k, v in counts.items() if k.startswith("READY"))
     if ready:
