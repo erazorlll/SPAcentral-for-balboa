@@ -1,7 +1,9 @@
 {
   "domain": "balboa_spacentral",
   "name": "Balboa SPAcentral",
-  "codeowners": ["@erazorlll"],
+  "codeowners": [
+    "@erazorlll"
+  ],
   "config_flow": true,
   "dependencies": [],
   "dhcp": [
@@ -13,7 +15,11 @@
   "integration_type": "device",
   "iot_class": "local_push",
   "issue_tracker": "https://github.com/erazorlll/homeassistant-balboa-SPAcentral/issues",
-  "loggers": ["balboa"],
-  "requirements": ["pyserial-asyncio-fast==0.16"],
-  "version": "0.2.0"
+  "loggers": [
+    "balboa"
+  ],
+  "requirements": [
+    "pyserial-asyncio-fast==0.16"
+  ],
+  "version": "0.3.0"
 }
