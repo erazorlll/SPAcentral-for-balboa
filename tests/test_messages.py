@@ -124,3 +124,61 @@ def test_pump_toggle_codes(index: int) -> None:
 def test_pump_toggle_code_rejects_bad_index(index: int) -> None:
     with pytest.raises(ValueError, match="pump index"):
         ToggleItem.pump(index)
+
+
+# The real filter cycle configuration of the spa this was built against.
+FILTER_CYCLES = bytes.fromhex("7e0d0abf23080005008e000800137e")
+
+
+def test_filter_cycles_decode() -> None:
+    from balboa.messages import FilterCycles
+
+    cycles = parse_frame(FILTER_CYCLES)
+    assert isinstance(cycles, FilterCycles)
+    assert cycles.start(1) == (8, 0)
+    assert cycles.duration(1) == 300  # five hours
+    assert cycles.cycle_2_enabled is True
+    assert cycles.start(2) == (14, 0)
+    assert cycles.duration(2) == 480
+
+
+def test_filter_cycles_round_trip() -> None:
+    """Writing back what we read must reproduce the frame byte for byte."""
+    from balboa.messages import set_filter_cycles
+
+    cycles = parse_frame(FILTER_CYCLES)
+    assert set_filter_cycles(cycles) == FILTER_CYCLES
+
+
+def test_changing_a_start_leaves_everything_else() -> None:
+    from balboa.messages import set_filter_cycles
+
+    cycles = parse_frame(FILTER_CYCLES).with_start(1, 9, 30)
+    payload = set_filter_cycles(cycles)[5:-2]
+    assert payload[0:2] == bytes([9, 30])
+    assert payload[2:4] == bytes([5, 0])  # duration untouched
+    assert payload[4] == 0x8E  # cycle 2 untouched, still enabled
+
+
+def test_duration_is_split_into_hours_and_minutes() -> None:
+    from balboa.messages import set_filter_cycles
+
+    cycles = parse_frame(FILTER_CYCLES).with_duration(2, 90)
+    payload = set_filter_cycles(cycles)[5:-2]
+    assert payload[6:8] == bytes([1, 30])
+
+
+def test_disabling_cycle_two_keeps_its_start_hour() -> None:
+    """The enable flag shares a byte with the hour, so it must not clobber it."""
+    from dataclasses import replace
+
+    from balboa.messages import set_filter_cycles
+
+    cycles = replace(parse_frame(FILTER_CYCLES), cycle_2_enabled=False)
+    payload = set_filter_cycles(cycles)[5:-2]
+    assert payload[4] == 0x0E  # hour 14, flag cleared
+
+
+def test_negative_duration_is_clamped() -> None:
+    cycles = parse_frame(FILTER_CYCLES).with_duration(1, -60)
+    assert cycles.duration(1) == 0

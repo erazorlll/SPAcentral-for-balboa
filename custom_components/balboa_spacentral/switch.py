@@ -5,9 +5,11 @@ Pumps and the blower are fans, not switches -- see fan.py.
 
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import Any
 
 from homeassistant.components.switch import SwitchEntity
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -27,6 +29,8 @@ async def async_setup_entry(
     ]
     if state.has_mister:
         entities.append(BalboaMister(entry))
+    if state.filter_cycles is not None:
+        entities.append(BalboaFilterCycle2(entry))
     async_add_entities(entities)
 
 
@@ -65,3 +69,33 @@ class BalboaMister(BalboaEntity, SwitchEntity):
     async def async_turn_off(self, **kwargs: Any) -> None:
         if self.is_on:
             await self._client.toggle_item(ToggleItem.MISTER)
+
+
+class BalboaFilterCycle2(BalboaEntity, SwitchEntity):
+    """Whether the second filter cycle runs at all.
+
+    Stored in the high bit of that cycle's start hour, so switching it means
+    writing the whole filter cycle block back.
+    """
+
+    _attr_entity_category = EntityCategory.CONFIG
+
+    def __init__(self, entry: SpaConfigEntry) -> None:
+        super().__init__(entry, "filter_cycle_2_enabled")
+
+    @property
+    def is_on(self) -> bool:
+        cycles = self.spa.filter_cycles
+        return bool(cycles and cycles.cycle_2_enabled)
+
+    async def _set(self, enabled: bool) -> None:
+        cycles = self.spa.filter_cycles
+        if cycles is None or cycles.cycle_2_enabled == enabled:
+            return
+        await self._client.set_filter_cycles(replace(cycles, cycle_2_enabled=enabled))
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        await self._set(True)
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        await self._set(False)

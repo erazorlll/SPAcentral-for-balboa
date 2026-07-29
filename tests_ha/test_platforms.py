@@ -231,3 +231,90 @@ async def test_unload_leaves_nothing_behind(hass: HomeAssistant, spa) -> None:
         hass.states.get("climate.whirlpool") is None
         or hass.states.get("climate.whirlpool").state == "unavailable"
     )
+
+
+async def test_filter_cycle_config_entities(hass: HomeAssistant, spa) -> None:
+    """The captured configuration: cycle 1 from 08:00 for 5 h, cycle 2 enabled."""
+    assert hass.states.get("time.whirlpool_filter_cycle_1_start").state == "08:00:00"
+    assert hass.states.get("number.whirlpool_filter_cycle_1_duration").state == "300.0"
+    assert hass.states.get("time.whirlpool_filter_cycle_2_start").state == "14:00:00"
+    assert hass.states.get("switch.whirlpool_filter_cycle_2").state == STATE_ON
+
+
+async def test_changing_a_filter_cycle_writes_the_whole_block(
+    hass: HomeAssistant, spa
+) -> None:
+    """Start time and duration share one message, so both must survive a change."""
+    _, transport = spa
+
+    await hass.services.async_call(
+        Platform.TIME,
+        "set_value",
+        {ATTR_ENTITY_ID: "time.whirlpool_filter_cycle_1_start", "time": "09:30:00"},
+        blocking=True,
+    )
+
+    sent = next(f for f in reversed(transport.written) if f[3:5].hex() == "bf23")
+    payload = sent[5:-2]
+    assert payload[0] == 9 and payload[1] == 30  # new start
+    assert payload[2] == 5 and payload[3] == 0  # duration untouched
+    assert payload[4] == 0x8E  # cycle 2 still enabled, still 14:00
+
+
+async def test_changing_a_duration_keeps_the_start(hass: HomeAssistant, spa) -> None:
+    _, transport = spa
+
+    await hass.services.async_call(
+        Platform.NUMBER,
+        "set_value",
+        {
+            ATTR_ENTITY_ID: "number.whirlpool_filter_cycle_2_duration",
+            "value": 90,
+        },
+        blocking=True,
+    )
+
+    sent = next(f for f in reversed(transport.written) if f[3:5].hex() == "bf23")
+    payload = sent[5:-2]
+    assert payload[6] == 1 and payload[7] == 30  # 90 minutes
+    assert payload[4] == 0x8E  # start hour and enable flag intact
+
+
+async def test_disabling_the_second_cycle_keeps_its_times(
+    hass: HomeAssistant, spa
+) -> None:
+    _, transport = spa
+
+    await hass.services.async_call(
+        Platform.SWITCH,
+        "turn_off",
+        {ATTR_ENTITY_ID: "switch.whirlpool_filter_cycle_2"},
+        blocking=True,
+    )
+
+    sent = next(f for f in reversed(transport.written) if f[3:5].hex() == "bf23")
+    payload = sent[5:-2]
+    assert payload[4] == 0x0E, "enable bit cleared, start hour 14 kept"
+
+
+async def test_reminder_event_entity_exists(hass: HomeAssistant, spa) -> None:
+    state = hass.states.get("event.whirlpool_reminder")
+    assert state is not None
+    assert "filter" in state.attributes["event_types"]
+
+
+async def test_diagnostics_hide_the_address(hass: HomeAssistant, spa) -> None:
+    from homeassistant.components.diagnostics import REDACTED
+
+    from custom_components.balboa_spacentral.diagnostics import (
+        async_get_config_entry_diagnostics,
+    )
+
+    entry, _ = spa
+    data = await async_get_config_entry_diagnostics(hass, entry)
+
+    assert data["entry"]["data"]["host"] == REDACTED
+    assert data["spa"]["model"] == "BP6013G3"
+    assert data["spa"]["has_mac"] is False
+    assert data["entry"]["identity_key_is_entry_id"] is True
+    assert data["connection"]["crc_errors"] == 0

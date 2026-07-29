@@ -28,6 +28,7 @@ from .messages import (
     parse_frame,
     request_configuration,
     request_control_configuration,
+    set_filter_cycles,
     set_temperature,
     set_temperature_unit,
     set_time,
@@ -194,6 +195,12 @@ class SpaClient:
                 twenty_four_hour=status.twenty_four_hour_time if status else True,
             )
         )
+
+    async def set_filter_cycles(self, cycles: FilterCycles) -> None:
+        """Write both filter cycles, then ask for them back to confirm."""
+        await self._send(set_filter_cycles(cycles))
+        await asyncio.sleep(REQUEST_INTERVAL)
+        await self._send(request_control_configuration(3))
 
     async def toggle_item(self, item: ToggleItem) -> None:
         await self._send(toggle(item))

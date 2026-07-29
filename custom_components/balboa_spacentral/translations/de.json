@@ -172,6 +172,39 @@
       },
       "mister": {
         "name": "Vernebler"
+      },
+      "filter_cycle_2_enabled": {
+        "name": "Filterzyklus 2"
+      }
+    },
+    "time": {
+      "filter_cycle_1_start": {
+        "name": "Filterzyklus 1 Start"
+      },
+      "filter_cycle_2_start": {
+        "name": "Filterzyklus 2 Start"
+      }
+    },
+    "number": {
+      "filter_cycle_1_duration": {
+        "name": "Filterzyklus 1 Dauer"
+      },
+      "filter_cycle_2_duration": {
+        "name": "Filterzyklus 2 Dauer"
+      }
+    },
+    "event": {
+      "reminder": {
+        "name": "Erinnerung",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "filter": "Filter reinigen",
+              "sanitizer": "Desinfektion prüfen",
+              "ph": "pH-Wert prüfen"
+            }
+          }
+        }
       }
     }
   }

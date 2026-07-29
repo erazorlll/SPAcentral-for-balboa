@@ -6,7 +6,7 @@ becomes an `UnknownMessage`, which the client counts and otherwise ignores.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from .const import (
     CELSIUS_DIVISOR,
@@ -36,6 +36,7 @@ __all__ = [
     "parse_frame",
     "request_configuration",
     "request_control_configuration",
+    "set_filter_cycles",
     "set_temperature",
     "set_time",
     "toggle",
@@ -163,6 +164,45 @@ class FilterCycles(Message):
     cycle_2_start_minute: int
     cycle_2_duration_hours: int
     cycle_2_duration_minutes: int
+
+    @property
+    def cycle_1_duration(self) -> int:
+        """Length of the first cycle in minutes."""
+        return self.cycle_1_duration_hours * 60 + self.cycle_1_duration_minutes
+
+    @property
+    def cycle_2_duration(self) -> int:
+        """Length of the second cycle in minutes."""
+        return self.cycle_2_duration_hours * 60 + self.cycle_2_duration_minutes
+
+    def start(self, cycle: int) -> tuple[int, int]:
+        """Start hour and minute of cycle 1 or 2."""
+        if cycle == 1:
+            return self.cycle_1_start_hour, self.cycle_1_start_minute
+        return self.cycle_2_start_hour, self.cycle_2_start_minute
+
+    def duration(self, cycle: int) -> int:
+        """Length of cycle 1 or 2 in minutes."""
+        return self.cycle_1_duration if cycle == 1 else self.cycle_2_duration
+
+    def with_start(self, cycle: int, hour: int, minute: int) -> FilterCycles:
+        """A copy with one cycle's start time changed."""
+        if cycle == 1:
+            return replace(self, cycle_1_start_hour=hour, cycle_1_start_minute=minute)
+        return replace(self, cycle_2_start_hour=hour, cycle_2_start_minute=minute)
+
+    def with_duration(self, cycle: int, minutes: int) -> FilterCycles:
+        """A copy with one cycle's length changed.
+
+        The controller stores hours and minutes separately, so the value is
+        split here rather than in every caller.
+        """
+        hours, mins = divmod(max(0, minutes), 60)
+        if cycle == 1:
+            return replace(
+                self, cycle_1_duration_hours=hours, cycle_1_duration_minutes=mins
+            )
+        return replace(self, cycle_2_duration_hours=hours, cycle_2_duration_minutes=mins)
 
 
 @dataclass(frozen=True, slots=True)
@@ -404,6 +444,31 @@ def set_time(hour: int, minute: int, *, twenty_four_hour: bool) -> bytes:
         MessageType.SET_TIME.value,
         bytes([(0x80 if twenty_four_hour else 0x00) | hour, minute]),
     )
+
+
+def set_filter_cycles(cycles: FilterCycles) -> bytes:
+    """Write both filter cycles back to the controller.
+
+    The same message type the controller answers with; the enable flag for the
+    second cycle rides in the high bit of its start hour.
+    """
+    start_2 = cycles.cycle_2_start_hour & 0x7F
+    if cycles.cycle_2_enabled:
+        start_2 |= 0x80
+
+    payload = bytes(
+        [
+            cycles.cycle_1_start_hour,
+            cycles.cycle_1_start_minute,
+            cycles.cycle_1_duration_hours,
+            cycles.cycle_1_duration_minutes,
+            start_2,
+            cycles.cycle_2_start_minute,
+            cycles.cycle_2_duration_hours,
+            cycles.cycle_2_duration_minutes,
+        ]
+    )
+    return build_frame(CLIENT_CHANNEL, MessageType.FILTER_CYCLES.value, payload)
 
 
 def set_temperature_unit(unit: TemperatureUnit) -> bytes:

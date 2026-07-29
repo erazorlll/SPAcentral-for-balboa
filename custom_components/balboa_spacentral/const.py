@@ -12,10 +12,13 @@ MANUFACTURER: Final = "Balboa Water Group"
 PLATFORMS: Final[list[Platform]] = [
     Platform.BINARY_SENSOR,
     Platform.CLIMATE,
+    Platform.EVENT,
     Platform.FAN,
     Platform.LIGHT,
+    Platform.NUMBER,
     Platform.SENSOR,
     Platform.SWITCH,
+    Platform.TIME,
 ]
 
 # ── Configuration keys ────────────────────────────────────────────────────────

@@ -172,6 +172,39 @@
       },
       "mister": {
         "name": "Mister"
+      },
+      "filter_cycle_2_enabled": {
+        "name": "Filter cycle 2"
+      }
+    },
+    "time": {
+      "filter_cycle_1_start": {
+        "name": "Filter cycle 1 start"
+      },
+      "filter_cycle_2_start": {
+        "name": "Filter cycle 2 start"
+      }
+    },
+    "number": {
+      "filter_cycle_1_duration": {
+        "name": "Filter cycle 1 duration"
+      },
+      "filter_cycle_2_duration": {
+        "name": "Filter cycle 2 duration"
+      }
+    },
+    "event": {
+      "reminder": {
+        "name": "Reminder",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "filter": "Clean the filter",
+              "sanitizer": "Check the sanitizer",
+              "ph": "Check the pH"
+            }
+          }
+        }
       }
     }
   }
