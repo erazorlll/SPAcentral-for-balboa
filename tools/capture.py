@@ -28,7 +28,7 @@ import socket
 import sys
 import time
 from collections import Counter
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 DELIMITER = 0x7E
@@ -151,10 +151,19 @@ class FrameReader:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("host", help="IP of the EW11 / Wi-Fi module")
-    parser.add_argument("--port", type=int, default=8899, help="8899 for EW11, 4257 for the Balboa Wi-Fi module")
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=8899,
+        help="8899 for EW11, 4257 for the Balboa Wi-Fi module",
+    )
     parser.add_argument("--seconds", type=int, default=120, help="capture duration")
     parser.add_argument("--prefix", default="capture", help="output file prefix")
-    parser.add_argument("--probe", action="store_true", help="send the four startup requests to see whether they are answered")
+    parser.add_argument(
+        "--probe",
+        action="store_true",
+        help="send the four startup requests to see whether they are answered",
+    )
     parser.add_argument("--outdir", default="fixtures", help="output directory")
     args = parser.parse_args()
 
@@ -182,13 +191,17 @@ def main() -> int:
     first_frame_at: float | None = None
     probe_sent = False
 
-    with raw_path.open("wb") as raw_f, jsonl_path.open("w", encoding="utf-8") as jsonl_f, \
-            text_path.open("w", encoding="utf-8") as text_f:
+    with (
+        raw_path.open("wb") as raw_f,
+        jsonl_path.open("w", encoding="utf-8") as jsonl_f,
+        text_path.open("w", encoding="utf-8") as text_f,
+    ):
         try:
             while time.monotonic() - started < args.seconds:
                 # send the probes once, a few seconds in, so the idle baseline
                 # is recorded first
-                if args.probe and not probe_sent and time.monotonic() - started > 5:
+                elapsed_now = time.monotonic() - started
+                if args.probe and not probe_sent and elapsed_now > 5:
                     for name, payload in PROBES.items():
                         frame = build_frame(payload)
                         sock.sendall(frame)
@@ -200,7 +213,7 @@ def main() -> int:
 
                 try:
                     chunk = sock.recv(4096)
-                except socket.timeout:
+                except TimeoutError:
                     continue
                 if not chunk:
                     print("Connection closed by the remote end.")
@@ -223,7 +236,7 @@ def main() -> int:
 
                     record = {
                         "t": round(now - started, 3),
-                        "utc": datetime.now(timezone.utc).isoformat(),
+                        "utc": datetime.now(UTC).isoformat(),
                         "type": name,
                         "hex": frame.hex(" "),
                     }
@@ -267,9 +280,9 @@ def main() -> int:
     else:
         answered = any("configuration_response" in k for k in counts)
         if answered:
-            print("  1. MAC address available    : NO (response came, but carried no MAC)")
+            print("  1. MAC address available    : NO (answered, but no MAC)")
         elif args.probe:
-            print("  1. MAC address available    : NO (configuration request went unanswered)")
+            print("  1. MAC address available    : NO (request unanswered)")
         else:
             print("  1. MAC address available    : UNKNOWN -- rerun with --probe")
         print("     The entry_id fallback becomes the normal path. This is expected")

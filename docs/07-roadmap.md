@@ -15,13 +15,30 @@ Durchgeführt mit [`tools/capture.py`](../tools/capture.py), Anleitung in
 Abbruchkriterium eingetreten, Fixtures und echte Referenzframes für die
 Serialisierungstests liegen vor.
 
-### Phase 1 — Protokollbibliothek (3,5 Tage)
+### Phase 1 — Protokollbibliothek ✅ **abgeschlossen**
 
-`balboa/` vollständig, ohne HA-Bezug: Framing, CRC, Parser, Serialisierung, Transporte
-(TCP + Serial), Client-Zustandsmaschine. Keine Arbitrierungs-Zustandsmaschine und keine
-Discovery — beides ist nach Phase 0 aus v1 entfallen.
-**Abnahme:** Ein CLI-Skript (`python -m balboa tcp://10.0.0.9:8899`) zeigt live den
-Spa-Zustand und kann eine Pumpe schalten. Testabdeckung ≥ 90 %.
+`balboa/` vollständig, ohne einen einzigen `homeassistant`-Import: Framing, CRC, Parser,
+Serialisierung, Transporte (TCP + Serial), Client-Zustandsmaschine, Discovery, CLI.
+
+**Abnahme erfüllt:**
+
+| Kriterium | Ergebnis |
+|---|---|
+| Testabdeckung ≥ 90 % | **91 %**, 126 Tests |
+| `ruff check` + `ruff format` | sauber |
+| `mypy --strict` | sauber |
+| Alle Nachrichtentypen der Aufzeichnungen modelliert | ja, null unbekannte bei 34 616 Frames |
+| CLI zeigt den Spa-Zustand live | ja, gegen abgespielte Echtdaten verifiziert |
+| Zustandsänderungen werden gemeldet | ja, 17 Wechsel im Panel-Mitschnitt erkannt |
+
+Verifiziert über [`tools/replay.py`](../tools/replay.py): Die Aufzeichnungen werden über
+einen echten TCP-Socket abgespielt, das CLI verbindet sich, führt den Handshake durch,
+dekodiert Modell (BP6013G3), Hardware und Temperaturen und reagiert auf jede
+Zustandsänderung — ohne angeschlossene Hardware.
+
+Discovery ist **doch enthalten**: Bei einer öffentlichen Veröffentlichung sind
+WLAN-Modul-Nutzer eine relevante Gruppe, und beide Verfahren sind rein additiv
+(siehe [11-entscheidungen.md](11-entscheidungen.md), E3).
 
 ### Phase 2 — HA-Grundgerüst (2 Tage)
 

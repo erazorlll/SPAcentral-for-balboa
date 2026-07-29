@@ -4,8 +4,12 @@ Native Home Assistant integration for Balboa Water Group spa controllers — sup
 original Balboa Wi-Fi module **and** RS-485 gateways such as the Elfin EW11, ser2net or a
 local serial adapter.
 
-> **Status: concept phase. No code yet.**
+> **Status: protocol library complete, Home Assistant layer next.**
 > The complete design lives in [`docs/`](docs/00-uebersicht.md) (German).
+>
+> `custom_components/balboa_spacentral/balboa/` speaks the full protocol over TCP and
+> serial, is verified against 34,616 frames captured from a real controller, and has
+> 91 % test coverage. The entity layer is phase 2.
 
 ## Why
 

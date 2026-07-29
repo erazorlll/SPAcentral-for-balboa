@@ -1,0 +1,16 @@
+[tool.mypy]
+python_version = "3.13"
+strict = true
+warn_unreachable = true
+files = ["custom_components/balboa_spacentral/balboa"]
+mypy_path = "custom_components/balboa_spacentral"
+
+[[tool.mypy.overrides]]
+# Optional dependency: Home Assistant ships it, a bare checkout may not.
+module = "serial_asyncio_fast.*"
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-q"
