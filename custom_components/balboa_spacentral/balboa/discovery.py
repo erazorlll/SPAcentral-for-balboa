@@ -5,7 +5,7 @@ found: they carry their own manufacturer's MAC and are generic bridges with no
 Balboa identity. Those setups are added by hand, which is a property of the
 hardware, not a gap here.
 
-Not verified against a real Wi-Fi module -- see docs/08-validierung.md §7.
+Not verified against a real Wi-Fi module.
 """
 
 from __future__ import annotations

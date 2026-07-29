@@ -405,7 +405,7 @@ class SpaClient:
 
         No arbitration: the Ready tokens on an RS-485 bus are addressed to the
         control panel's channel, never ours, so waiting for one would mean never
-        sending. Measured -- see docs/10-phase0-ergebnis.md.
+        sending. Measured against real hardware.
         """
         try:
             await self._transport.write(frame)

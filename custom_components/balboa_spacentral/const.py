@@ -31,7 +31,7 @@ CONNECTION_GATEWAY: Final = "gateway"
 CONNECTION_SERIAL: Final = "serial"
 
 #: How the device is identified. Frozen at first successful setup and never
-#: changed afterwards -- see docs/03-geraeteidentitaet.md.
+#: changed afterwards.
 IDENTITY_MAC: Final = "mac"
 IDENTITY_ENTRY_ID: Final = "entry_id"
 

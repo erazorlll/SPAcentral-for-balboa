@@ -65,7 +65,7 @@ class _BalboaFan(BalboaEntity, FanEntity):
         """Percentage of the available speeds.
 
         A single-speed pump reports 2 when running rather than 1, so anything
-        non-zero simply means full -- see docs/11-entscheidungen.md.
+        non-zero simply means full.
         """
         if not self._current:
             return 0

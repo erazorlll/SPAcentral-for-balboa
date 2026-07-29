@@ -188,5 +188,5 @@ def test_the_two_controllers_are_indistinguishable_by_content(
 
     assert identities[0] == identities[1], (
         "the two spas report identical identity, so entity identity cannot "
-        "come from the device -- see docs/03-geraeteidentitaet.md"
+        "come from the device"
     )

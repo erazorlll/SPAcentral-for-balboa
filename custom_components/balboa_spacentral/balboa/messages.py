@@ -120,7 +120,7 @@ class ModuleConfiguration(Message):
     """Configuration response -- the only message carrying a MAC address.
 
     Many setups never answer the request for it; an RS-485 tap without a Balboa
-    Wi-Fi module is one of them (measured, see docs/10-phase0-ergebnis.md).
+    Wi-Fi module is one of them.
     """
 
     mac_address: str | None

@@ -1,4 +1,4 @@
-"""Device identity -- the seven cases from docs/03-geraeteidentitaet.md §6.
+"""Device identity -- the seven cases the identity scheme has to cover.
 
 The case that matters most here is two spas without a MAC. Both of the
 controllers this was built against are the same model on the same firmware and

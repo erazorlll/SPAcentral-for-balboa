@@ -2,7 +2,7 @@
 
 Every value here is either taken from the published protocol notes of
 ccutrer/balboa_worldwide_app or confirmed against captures recorded from a real
-controller (see fixtures/ and docs/10-phase0-ergebnis.md).
+controller (see fixtures/).
 """
 
 from __future__ import annotations

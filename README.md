@@ -14,8 +14,7 @@ original Balboa Wi-Fi module **and** RS-485 gateways such as the Elfin EW11, ser
 local serial adapter.
 
 > **Status: running on real hardware.** Verified against 40,000+ frames captured from two
-> real controllers and driving both of them from Home Assistant. The design notes live in
-> [`docs/`](docs/00-uebersicht.md) (German).
+> real controllers and driving both of them from Home Assistant.
 
 ## Installation
 
