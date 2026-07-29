@@ -1,16 +1,50 @@
 [tool.mypy]
-python_version = "3.13"
-strict = true
+# No python_version pin: match whatever interpreter is running, so the same
+# config works on the developer machine and in CI.
 warn_unreachable = true
-files = ["custom_components/balboa_spacentral/balboa"]
-mypy_path = "custom_components/balboa_spacentral"
+# Resolve modules as custom_components.balboa_spacentral.* so the
+# per-module overrides below actually match them.
+mypy_path = "."
+explicit_package_bases = true
+namespace_packages = true
+
+# The protocol library is fully typed and held to it.
+files = ["custom_components/balboa_spacentral"]
+strict = true
+
+[[tool.mypy.overrides]]
+# Do not type-check Home Assistant itself -- it is large, and its source may use
+# syntax newer than the interpreter mypy runs under.
+module = "homeassistant.*"
+follow_imports = "skip"
+ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 # Optional dependency: Home Assistant ships it, a bare checkout may not.
 module = "serial_asyncio_fast.*"
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+# The Home Assistant layer is thin glue over a framework whose types mypy does
+# not see (it is skipped above), so subclassing and decorating it all look like
+# Any. Holding this layer to --strict would mean annotating around Home
+# Assistant rather than describing our own code.
+module = "custom_components.balboa_spacentral.*"
+disallow_subclassing_any = false
+disallow_untyped_decorators = false
+disallow_any_generics = false
+warn_return_any = false
+
+[[tool.mypy.overrides]]
+# ... but the protocol library depends on nothing external and stays strict.
+# Listed last on purpose: with several matching patterns, mypy takes the last.
+module = "custom_components.balboa_spacentral.balboa.*"
+disallow_subclassing_any = true
+disallow_untyped_decorators = true
+disallow_any_generics = true
+warn_return_any = true
+
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["tests"]  # tests_ha needs Home Assistant, run it separately
 asyncio_mode = "auto"
 addopts = "-q"

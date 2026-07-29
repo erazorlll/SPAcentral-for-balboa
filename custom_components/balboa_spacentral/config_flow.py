@@ -64,7 +64,9 @@ async def _probe(data: dict[str, Any]) -> dict[str, Any]:
         await client.disconnect()
 
 
-class BalboaSpacentralConfigFlow(ConfigFlow, domain=DOMAIN):
+# `domain=` is Home Assistant's registration hook; mypy cannot see it because
+# the framework's own types are deliberately skipped (see pyproject.toml).
+class BalboaSpacentralConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
     """Handle the setup dialog."""
 
     VERSION = 1

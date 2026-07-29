@@ -28,11 +28,6 @@ PROBE = "custom_components.balboa_spacentral.config_flow._probe"
 
 
 @pytest.fixture(autouse=True)
-def _allow_custom_integrations(enable_custom_integrations: None) -> None:
-    """Required for a custom integration to be loadable in tests."""
-
-
-@pytest.fixture(autouse=True)
 def _no_setup():
     """Do not actually connect after the flow finishes."""
     with patch(

@@ -13,11 +13,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-      - run: pip install ruff mypy
+      - name: Install
+        # Home Assistant is needed for the integration layer to type-check.
+        run: pip install ruff mypy homeassistant
       - name: Lint
-        run: ruff check custom_components/ tests/ tools/
+        run: ruff check custom_components/ tests/ tests_ha/ tools/
       - name: Format
-        run: ruff format --check custom_components/ tests/ tools/
+        run: ruff format --check custom_components/ tests/ tests_ha/ tools/
       - name: Types
         run: mypy
 
@@ -32,8 +34,14 @@ jobs:
         run: |
           pip install pytest pytest-asyncio pytest-cov
           pip install homeassistant pytest-homeassistant-custom-component
-      - name: Tests
-        run: pytest --cov=balboa --cov-report=term-missing --cov-fail-under=90
+      - name: Protocol library
+        # The Home Assistant plugin installs autouse fixtures that assume a
+        # running HA loop, so it is kept out of this run.
+        run: >-
+          pytest tests -p no:homeassistant
+          --cov=balboa --cov-report=term-missing --cov-fail-under=90
+      - name: Integration
+        run: pytest tests_ha
 
   hassfest:
     runs-on: ubuntu-latest
@@ -43,6 +51,9 @@ jobs:
 
   hacs:
     runs-on: ubuntu-latest
+    # Not blocking yet: the brands check needs an entry in the
+    # home-assistant/brands repository, which is part of publishing.
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: hacs/action@main
