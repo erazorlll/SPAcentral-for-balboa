@@ -81,8 +81,12 @@
   },
   "entity": {
     "sensor": {
-      "water_temperature": { "name": "Water temperature" },
-      "target_temperature": { "name": "Target temperature" },
+      "water_temperature": {
+        "name": "Water temperature"
+      },
+      "target_temperature": {
+        "name": "Target temperature"
+      },
       "heat_mode": {
         "name": "Heat mode",
         "state": {
@@ -93,7 +97,10 @@
       },
       "temperature_range": {
         "name": "Temperature range",
-        "state": { "low": "Low", "high": "High" }
+        "state": {
+          "low": "Low",
+          "high": "High"
+        }
       },
       "notification": {
         "name": "Reminder",
@@ -106,12 +113,71 @@
       }
     },
     "binary_sensor": {
-      "heating": { "name": "Heating" },
-      "circulation_pump": { "name": "Circulation pump" },
-      "filter_cycle_1": { "name": "Filter cycle 1" },
-      "filter_cycle_2": { "name": "Filter cycle 2" },
-      "priming": { "name": "Priming" },
-      "hold": { "name": "Hold" }
+      "heating": {
+        "name": "Heating"
+      },
+      "circulation_pump": {
+        "name": "Circulation pump"
+      },
+      "filter_cycle_1": {
+        "name": "Filter cycle 1"
+      },
+      "filter_cycle_2": {
+        "name": "Filter cycle 2"
+      },
+      "priming": {
+        "name": "Priming"
+      },
+      "hold": {
+        "name": "Hold"
+      }
+    },
+    "climate": {
+      "spa": {
+        "name": null
+      }
+    },
+    "fan": {
+      "pump_1": {
+        "name": "Pump 1"
+      },
+      "pump_2": {
+        "name": "Pump 2"
+      },
+      "pump_3": {
+        "name": "Pump 3"
+      },
+      "pump_4": {
+        "name": "Pump 4"
+      },
+      "pump_5": {
+        "name": "Pump 5"
+      },
+      "pump_6": {
+        "name": "Pump 6"
+      },
+      "blower": {
+        "name": "Blower"
+      }
+    },
+    "light": {
+      "light_1": {
+        "name": "Light 1"
+      },
+      "light_2": {
+        "name": "Light 2"
+      }
+    },
+    "switch": {
+      "aux_1": {
+        "name": "Auxiliary 1"
+      },
+      "aux_2": {
+        "name": "Auxiliary 2"
+      },
+      "mister": {
+        "name": "Mister"
+      }
     }
   }
 }

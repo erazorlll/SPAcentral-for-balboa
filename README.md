@@ -1,16 +1,18 @@
+<img src="images/logo.png" alt="Balboa SPAcentral" width="320">
+
 # Balboa SPAcentral
 
 Native Home Assistant integration for Balboa Water Group spa controllers — supporting the
 original Balboa Wi-Fi module **and** RS-485 gateways such as the Elfin EW11, ser2net or a
 local serial adapter.
 
-> **Status: protocol library and the first Home Assistant platforms are in.**
+> **Status: running on real hardware. Reading and control both work.**
 > The complete design lives in [`docs/`](docs/00-uebersicht.md) (German).
 >
 > `custom_components/balboa_spacentral/balboa/` speaks the full protocol over TCP and
-> serial, is verified against 40,000+ frames captured from two real controllers, and has
-> 91 % test coverage. Setup through the UI, device identity, sensors and binary sensors
-> are done; the controls (climate, pumps, lights) are next.
+> Verified against 40,000+ frames captured from two real controllers, installed in Home
+> Assistant, and driving both spas. Climate, pumps, blower, lights, switches, sensors and
+> binary sensors are in.
 
 ## Why
 
@@ -62,8 +64,7 @@ deliberately deferred until someone with that hardware can test it.
 
 - Setup entirely through the UI, with connection presets in plain language
 - Any number of spas side by side
-- `climate`, `fan`, `light`, `switch`, `select`, `number`, `time`, `sensor`,
-  `binary_sensor`, `event`, `button`
+- `climate`, `fan` (pumps and blower), `light`, `switch`, `sensor`, `binary_sensor`
 - Only creates entities the spa actually reports
 - Diagnostics download, English and German translations
 - Reconnect with exponential backoff and stale-stream detection

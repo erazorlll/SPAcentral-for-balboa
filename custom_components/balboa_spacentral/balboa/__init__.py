@@ -6,6 +6,9 @@ byte streams on its own and could be published separately unchanged.
 
 from .client import SpaClient
 from .const import (
+    MAX_AUX,
+    MAX_LIGHTS,
+    MAX_PUMPS,
     HeatMode,
     MessageType,
     Notification,
@@ -37,6 +40,9 @@ from .transport import (
 __all__ = [
     "BALBOA_OUI",
     "GATEWAY_PORT",
+    "MAX_AUX",
+    "MAX_LIGHTS",
+    "MAX_PUMPS",
     "WIFI_MODULE_PORT",
     "ControlConfiguration",
     "ControlConfiguration2",

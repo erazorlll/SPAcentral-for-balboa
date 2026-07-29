@@ -131,6 +131,53 @@
       "hold": {
         "name": "Halten"
       }
+    },
+    "climate": {
+      "spa": {
+        "name": null
+      }
+    },
+    "fan": {
+      "pump_1": {
+        "name": "Pumpe 1"
+      },
+      "pump_2": {
+        "name": "Pumpe 2"
+      },
+      "pump_3": {
+        "name": "Pumpe 3"
+      },
+      "pump_4": {
+        "name": "Pumpe 4"
+      },
+      "pump_5": {
+        "name": "Pumpe 5"
+      },
+      "pump_6": {
+        "name": "Pumpe 6"
+      },
+      "blower": {
+        "name": "Gebläse"
+      }
+    },
+    "light": {
+      "light_1": {
+        "name": "Licht 1"
+      },
+      "light_2": {
+        "name": "Licht 2"
+      }
+    },
+    "switch": {
+      "aux_1": {
+        "name": "Zusatz 1"
+      },
+      "aux_2": {
+        "name": "Zusatz 2"
+      },
+      "mister": {
+        "name": "Vernebler"
+      }
     }
   }
 }
