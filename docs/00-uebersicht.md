@@ -63,6 +63,7 @@ Baustein und ein Abfrageintervall eine Scheinoption. Entities abonnieren ein Upd
 | [06-qualitaet-tests.md](06-qualitaet-tests.md) | Qualitätsziel, Teststrategie, CI, Lizenz |
 | [07-roadmap.md](07-roadmap.md) | Phasen, Aufwand, Ausbaustufen |
 | [08-validierung.md](08-validierung.md) | Kritische Prüfung, Risiken, Abbruchkriterien |
+| [09-phase0-aufzeichnung.md](09-phase0-aufzeichnung.md) | **Der nächste Schritt:** was aufzuzeichnen ist und wie |
 
 ## Verfügbare Hardware
 
