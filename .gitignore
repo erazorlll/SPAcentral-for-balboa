@@ -10,4 +10,5 @@ dist/
 build/
 *.egg-info/
 .DS_Store
-fixtures/
+fixtures/*.jsonl
+fixtures/*.txt

@@ -46,9 +46,10 @@ PROBES: dict[str, bytes] = {
 MESSAGE_TYPES: dict[bytes, str] = {
     bytes([0xAF, 0x13]): "status_update",
     bytes([0xBF, 0x94]): "configuration_response  <-- carries the MAC",
-    bytes([0xBF, 0x24]): "control_configuration",
-    bytes([0xBF, 0x23]): "control_configuration_2",
-    bytes([0xBF, 0x25]): "filter_cycles",
+    bytes([0xBF, 0x24]): "control_configuration (model, version)",
+    bytes([0xBF, 0x2E]): "control_configuration_2 (pumps, lights, blower)",
+    bytes([0xBF, 0x23]): "filter_cycles",
+    bytes([0xBF, 0xE1]): "error",
     bytes([0xBF, 0x06]): "READY  <-- RS-485 arbitration token",
     bytes([0xBF, 0x07]): "nothing_to_send",
     bytes([0xBF, 0x00]): "new_client_clear_to_send",

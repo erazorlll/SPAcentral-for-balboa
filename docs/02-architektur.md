@@ -79,21 +79,22 @@ EW11-Betriebsart bleibt.
 
 ```python
 class ArbitrationMode(StrEnum):
-    IMMEDIATE = "immediate"   # sofort schreiben
-    TOKEN     = "token"       # erst nach Empfang von "Ready" (10 BF 06)
+    IMMEDIATE = "immediate"   # sofort schreiben — einziger Modus in v1
 ```
 
-- `IMMEDIATE` — Schreiben geht direkt raus. Belegter Normalfall für WLAN-Modul und
-  TCP-Gateways.
-- `TOKEN` — ausgehende Frames landen in einer `asyncio.Queue`; der Empfangs-Task schreibt
-  genau einen Frame, sobald ein `Ready` eintrifft. Verhindert Buskollisionen bei direktem
-  RS-485-Anschluss.
+**Nach der Messung in Phase 0 ist `IMMEDIATE` der einzige sinnvolle Modus.**
+Die Aufzeichnung zeigt `Ready`-Token im 20-ms-Takt, aber **adressiert an Kanal `0x10`**,
+der dem Bedienpanel gehört. Ein Client, der auf ein `Ready` für den eigenen Kanal wartet,
+wartet für immer. Zugleich beantwortet die Steuerung nachweislich Anfragen von Kanal `0x0A`,
+ohne dass dieser je gepollt würde — sofortiges Schreiben ist also nicht nur zulässig,
+sondern der einzig funktionierende Weg.
 
-Die Vorgabe kommt vom Transport, ist aber in den Integrationsoptionen überschreibbar —
-für den Fall, dass ein Aufbau wider Erwarten Kollisionen zeigt. **Sicherheitsnetz:** Läuft
-im `TOKEN`-Modus 30 Sekunden lang kein `Ready` ein, wird einmalig gewarnt und ein
-HA-Reparaturhinweis erzeugt, der auf `IMMEDIATE` verweist — statt stillschweigend nie zu
-senden.
+Token-gebundenes Senden setzt eine **Kanalanmeldung** über `New Client Clear To Send`
+(`BF 00`) voraus. Das ist ein eigenständiges Vorhaben mit echtem Risiko — eine fehlerhafte
+Anmeldung könnte den Panel-Kanal stören — und wandert in die Ausbaustufen. Die Aufzählung
+bleibt einwertig bestehen, damit die Erweiterung später keinen Umbau erzwingt.
+
+Belege und Zahlen in [10-phase0-ergebnis.md](10-phase0-ergebnis.md) §1.2.
 
 ## 5. Verbindungslebenszyklus
 
@@ -104,9 +105,9 @@ stateDiagram-v2
     Connecting --> Backoff: Fehler
     Handshake --> Online: Status + Control-Config empfangen
     Handshake --> Backoff: Timeout
-    Online --> Stale: > 15 s kein Statusframe
+    Online --> Stale: > 5 s kein Statusframe
     Stale --> Online: Frame empfangen
-    Stale --> Backoff: > 60 s kein Frame
+    Stale --> Backoff: > 20 s kein Frame
     Backoff --> Connecting: 1,2,4…60 s + Jitter
     Online --> [*]: unload
 ```
@@ -117,9 +118,10 @@ stateDiagram-v2
   hier liegt der Unterschied, der EW11-Aufbauten überhaupt erst funktionieren lässt.
 - **Backoff:** exponentiell `min(2^n + jitter, 60 s)` — übernommen aus `pybalboa`, dort
   bewährt.
-- **Stale-Erkennung:** Die Steuerung sendet sekündlich. Bleiben Frames aus, obwohl der
-  Socket offen ist (klassisch bei einem eingefrorenen EW11), werden die Entities auf
-  *nicht verfügbar* gesetzt und die Verbindung neu aufgebaut. Ein reiner
+- **Stale-Erkennung:** Die Steuerung sendet **alle 300 ms** (gemessen, nicht sekündlich wie
+  dokumentiert; größte beobachtete Lücke 2,0 s). Bleiben Frames aus, obwohl der Socket offen
+  ist — klassisch bei einem eingefrorenen EW11 —, werden die Entities nach 5 s auf *nicht
+  verfügbar* gesetzt und die Verbindung nach 20 s neu aufgebaut. Ein reiner
   Socket-Zustandstest würde das nicht bemerken.
 
 ## 6. Datenfluss in HA

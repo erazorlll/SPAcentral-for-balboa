@@ -63,7 +63,8 @@ Baustein und ein Abfrageintervall eine Scheinoption. Entities abonnieren ein Upd
 | [06-qualitaet-tests.md](06-qualitaet-tests.md) | Qualitätsziel, Teststrategie, CI, Lizenz |
 | [07-roadmap.md](07-roadmap.md) | Phasen, Aufwand, Ausbaustufen |
 | [08-validierung.md](08-validierung.md) | Kritische Prüfung, Risiken, Abbruchkriterien |
-| [09-phase0-aufzeichnung.md](09-phase0-aufzeichnung.md) | **Der nächste Schritt:** was aufzuzeichnen ist und wie |
+| [09-phase0-aufzeichnung.md](09-phase0-aufzeichnung.md) | Was aufzuzeichnen war und wie |
+| [10-phase0-ergebnis.md](10-phase0-ergebnis.md) | **Messergebnis** — alle offenen Fragen beantwortet, Freigabe für Phase 1 |
 
 ## Verfügbare Hardware
 
@@ -79,6 +80,17 @@ Discovery ist deshalb aus dem Erstumfang genommen. Begründung in
 
 ## Status
 
-**Konzeptphase. Noch kein Code.** Der erste Umsetzungsschritt ist bewusst kein Code,
-sondern die Aufzeichnung echter Byteströme über den EW11 — sie beantwortet die einzige
-offene Entwurfsfrage und liefert zugleich sämtliche Testfixtures.
+**Phase 0 abgeschlossen, Phase 1 freigegeben.** 34 616 Frames aufgezeichnet, alle drei
+offenen Entwurfsfragen beantwortet, kein Abbruchkriterium eingetreten.
+
+Die drei Kernergebnisse:
+
+- **Keine MAC-Adresse** — der `entry_id`-Rückfall ist der Normalfall, die zentrale
+  Entwurfsentscheidung ist bestätigt. `pybalboa` wäre hier nachweislich gescheitert.
+- **`Ready`-Token gehören dem Bedienpanel** (Kanal `0x10`), nicht uns — der geplante
+  `TOKEN`-Modus entfällt, `IMMEDIATE` ist der einzige funktionierende Weg. Das
+  vereinfacht die Architektur.
+- **CRC-Annahme bestätigt** — null Fehler bei 34 616 Frames.
+
+Aufwand dadurch von 13,5 auf **≈ 12 PT** gesunken. Einzelheiten in
+[10-phase0-ergebnis.md](10-phase0-ergebnis.md).

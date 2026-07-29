@@ -5,32 +5,21 @@
 Die Protokollbibliothek zuerst, und zwar gegen echte Aufzeichnungen. Alles danach baut
 darauf auf. Wer mit dem Config Flow beginnt, testet gegen Vermutungen.
 
-### Phase 0 — Aufzeichnungen (0,5 Tage)
+### Phase 0 — Aufzeichnungen ✅ **abgeschlossen**
 
-**Vor jeder Zeile Code.** Rohdaten mitschneiden:
+Durchgeführt mit [`tools/capture.py`](../tools/capture.py), Anleitung in
+[09-phase0-aufzeichnung.md](09-phase0-aufzeichnung.md), Ergebnis in
+[10-phase0-ergebnis.md](10-phase0-ergebnis.md).
 
-```bash
-nc 10.0.0.9 8899 | xxd > fixtures/ew11_idle.hex      # ~60 s Ruhezustand
-nc 10.0.0.9 8899 | xxd > fixtures/ew11_control.hex   # mit Bedienung am Spa-Panel
-```
+34 616 Frames in drei Läufen. Alle drei offenen Entwurfsfragen beantwortet, kein
+Abbruchkriterium eingetreten, Fixtures und echte Referenzframes für die
+Serialisierungstests liegen vor.
 
-Für die zweite Aufzeichnung am Panel: Pumpe 1 durchschalten (aus → Stufe 1 → Stufe 2 → aus),
-Licht an/aus, Solltemperatur ändern, Heizmodus umschalten. Das liefert die Fixtures für die
-Toggle-Logik mehrstufiger Pumpen (Risiko R3).
-
-Diese Dateien sind die Grundlage aller Parsertests und **beantworten die offene Frage**,
-ob über den EW11 eine Configuration Response (`0A BF 94`) mit MAC-Adresse eintrifft.
-
-> **Nur der EW11-Pfad ist auf eigener Hardware prüfbar** — ein Balboa-WLAN-Modul steht nicht
-> zur Verfügung. Die Folgen für Testmatrix und Umfang stehen in
-> [08-validierung.md](08-validierung.md) §7.
-
-**Ohne diesen Schritt bleibt eine zentrale Entwurfsannahme ungeprüft.**
-
-### Phase 1 — Protokollbibliothek (3–4 Tage)
+### Phase 1 — Protokollbibliothek (3,5 Tage)
 
 `balboa/` vollständig, ohne HA-Bezug: Framing, CRC, Parser, Serialisierung, Transporte
-(TCP + Serial), Arbitrierung, Client-Zustandsmaschine, Discovery.
+(TCP + Serial), Client-Zustandsmaschine. Keine Arbitrierungs-Zustandsmaschine und keine
+Discovery — beides ist nach Phase 0 aus v1 entfallen.
 **Abnahme:** Ein CLI-Skript (`python -m balboa tcp://10.0.0.9:8899`) zeigt live den
 Spa-Zustand und kann eine Pumpe schalten. Testabdeckung ≥ 90 %.
 
@@ -42,11 +31,14 @@ Anschlussarten, Identitätslogik, `entity.py`, und als erste Plattform `sensor` 
 **Abnahme:** Integration lässt sich per HACS installieren, zwei Instanzen parallel
 einrichten, Temperatur wird angezeigt.
 
-### Phase 3 — Steuerung (2–3 Tage)
+### Phase 3 — Steuerung (2,5 Tage)
 
-`climate`, `fan` (Pumpen inkl. Mehrstufenlogik), `light`, `switch`, `select`.
+`climate`, `light`, `switch`/`fan` (Pumpen, Gebläse), `select`.
 **Abnahme:** Alle Bedienelemente des Spa-Panels sind aus HA bedienbar; die Testmatrix aus
-[06-qualitaet-tests.md](06-qualitaet-tests.md) §2.3 läuft für WLAN-Modul und EW11 durch.
+[06-qualitaet-tests.md](06-qualitaet-tests.md) §2.3 läuft für den EW11 durch.
+
+Die Mehrstufen-Toggle-Logik ist hier **nicht** enthalten — Phase 0 hat gezeigt, dass alle
+drei Pumpen dieser Anlage einstufig sind. Sie entsteht danach für fremde Installationen.
 
 ### Phase 4 — Feinschliff (2 Tage)
 
@@ -73,15 +65,15 @@ HACS-Metadaten, CI-Workflows, erstes Release, Einreichung als HACS-Default-Repos
 | Phase | Aufwand |
 |---|---|
 | 0 Aufzeichnungen | 0,5 PT |
-| 1 Protokollbibliothek | 4 PT |
+| 1 Protokollbibliothek | 3,5 PT |
 | 2 HA-Grundgerüst | 2 PT |
-| 3 Steuerung | 3 PT |
+| 3 Steuerung | 2,5 PT |
 | 4 Feinschliff | 2 PT |
 | 5 Politur | 1 PT |
 | 6 Veröffentlichung | 1 PT |
-| **Summe** | **≈ 13,5 PT** |
+| **Summe** | **≈ 12 PT** (nach Phase 0 neu geschätzt) |
 
-Erster produktiv nutzbarer Stand nach Phase 3, also **≈ 9,5 PT**.
+Erster produktiv nutzbarer Stand nach Phase 3, also **≈ 8,5 PT**.
 
 ## 3. Optionale Ausbaustufen
 

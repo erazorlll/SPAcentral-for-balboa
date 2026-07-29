@@ -17,23 +17,20 @@ Kritische Selbstprüfung. Was hält, was wackelt, was ist ungeprüft.
 | Stabil | ✅ | Reconnect mit Backoff, Stale-Erkennung, defensiver Parser |
 | Benutzerfreundlich | ✅ | Alltagssprache statt Protokollbegriffen, Klartextfehler, Discovery |
 
-## 2. Die offene Kernfrage
+## 2. Die offene Kernfrage — ✅ beantwortet
 
 **Liefert ein Aufbau ohne Balboa-WLAN-Modul eine Configuration Response (`0A BF 94`) mit
 MAC-Adresse?**
 
-Das ließ sich aus den Quellen nicht klären. Die Konsequenzen wären:
+**Nein.** Gemessen in Phase 0: Die Anfrage `7e 05 0a bf 04 77 7e` blieb in allen drei
+Läufen unbeantwortet, während alle anderen Konfigurationsanfragen prompt beantwortet
+wurden. Vollständige Auswertung in [10-phase0-ergebnis.md](10-phase0-ergebnis.md).
 
-| Antwort | Folge für den Entwurf |
-|---|---|
-| ja | MAC ist überall verfügbar, `entry_id`-Rückfall wird selten gebraucht |
-| nein | `entry_id`-Rückfall greift — **der Entwurf funktioniert unverändert** |
-
-**Das ist der wichtigste Validierungspunkt: Die Frage muss nicht vorab beantwortet werden.**
-Die Zwei-Ebenen-Identität ist gegen beide Ausgänge robust. Genau daran scheitern
-`pybalboa` und `smartspaclient`, die die MAC als gegeben voraussetzen.
-
-Phase 0 beantwortet die Frage nebenbei durch die Aufzeichnung.
+**Der `entry_id`-Rückfall ist damit nicht die Ausnahme, sondern der Normalfall** — und
+die wichtigste Entwurfsentscheidung ist bestätigt. Zugleich ist jetzt gemessen statt
+vermutet, dass `pybalboa` und die HA-Core-Integration in diesem Aufbau tatsächlich
+scheitern würden: Beide warten in `_check_configuration_loaded()` auf
+`_module_identification_loaded`, das nie eintrifft.
 
 ## 3. Risiken
 
@@ -41,8 +38,8 @@ Phase 0 beantwortet die Frage nebenbei durch die Aufzeichnung.
 |---|---|---|---|
 | **R1** | **Eigene Protokollbibliothek** statt `pybalboa` — mehr Code in eigener Verantwortung, entgegen dem Ziel „einfach wartbar" | hoch | Das Protokoll ist eingefroren (Hardware erhält keine Updates), vollständig dokumentiert und wird gegen echte Aufzeichnungen getestet. Die Schnittstelle zu `balboa/client.py` ist schmal genug, um später doch auf `pybalboa` zu wechseln. **Ehrlich bleibt: das ist ein bewusster Tausch von Abhängigkeit gegen Kontrolle, kein kostenloser Gewinn.** |
 | **R2** | **Kanalkonflikt**: Der Client sendet mit Quelladresse `0x0A`. Ist gleichzeitig ein echtes Balboa-WLAN-Modul am Bus, könnten beide denselben Kanal beanspruchen | ~~mittel~~ **entfällt** | Im hiesigen Aufbau ist **kein WLAN-Modul vorhanden** — Kanal `0x0A` ist frei und kann gefahrlos belegt werden. Das Risiko bleibt nur für fremde Installationen, die beides parallel betreiben; dafür ist die Kanalverhandlung über `New Client Clear To Send` als Ausbaustufe vorgemerkt |
-| **R3** | **Mehrstufige Pumpen** werden per Toggle-Schleife gesetzt — anfällig für verlorene Frames und Rennbedingungen | mittel | Obergrenze für Toggles, Timeout, `assumed_state` während des Vorgangs, Abbruch bei Zielerreichung. Fixtures mit Pumpenschaltvorgängen aus Phase 0 |
-| **R4** | **`TOKEN`-Arbitrierung** ist nur aus dem Gem abgeleitet, nicht selbst erprobt | mittel | Sicherheitsnetz: 30 s ohne `Ready` erzeugt einen Reparaturhinweis statt stiller Funkstille. Vorgabe für TCP bleibt `IMMEDIATE`, also der belegte Pfad |
+| **R3** | **Mehrstufige Pumpen** werden per Toggle-Schleife gesetzt — anfällig für verlorene Frames und Rennbedingungen | ~~mittel~~ **niedrig** | Phase 0 zeigt: **alle drei Pumpen dieser Anlage sind einstufig**. Die Logik wird für fremde Installationen weiterhin gebaut, ist aber nicht mehr auf dem kritischen Pfad und kann nach Phase 3 entstehen |
+| **R4** | **`TOKEN`-Arbitrierung** ist nur aus dem Gem abgeleitet, nicht selbst erprobt | ~~mittel~~ **entfällt** | Phase 0 hat das Modell widerlegt: `Ready`-Token gehören Kanal `0x10` (Bedienpanel), nicht uns. `TOKEN` fliegt aus v1, `IMMEDIATE` ist der einzige und belegte Modus. Das Sicherheitsnetz war auf einer falschen Annahme gebaut und entfällt mit |
 | **R5** | **Aufwandsschätzung** 14,5 PT ist für eine erstmalige Protokollimplementierung optimistisch | mittel | Phase 0 und 1 sind die Unsicherheit; nach Phase 1 ist der Rest gut kalkulierbar. Realistischer Korridor: 14–22 PT |
 | **R6** | **Serieller Port in HA OS** erfordert Gerätedurchreichung und kollidiert mit anderen Integrationen am selben Adapter | niedrig | `/dev/serial/by-id`-Auswahl, `port_busy`-Fehlermeldung im Klartext |
 | **R7** | **HACS-Default-Aufnahme** verlangt zusätzlich einen Eintrag im `home-assistant/brands`-Repository für Logo und Icon | niedrig | Teil von Phase 6, kein technisches Risiko — nur ein zusätzlicher PR |
@@ -93,7 +90,11 @@ Die entscheidende Spalte ist **„Identität ohne MAC belastbar"** — dort ist 
 als einziger uneingeschränkt einsatzfähig, und genau das ist die Voraussetzung dafür, zwei
 Spas über einen EW11 zu betreiben.
 
-## 6. Wann das Konzept scheitern würde
+## 6. Wann das Konzept scheitern würde — ✅ geprüft
+
+> **Ergebnis von Phase 0: kein Abbruchkriterium ist eingetreten.** Kriterium 1 und 2 sind
+> widerlegt, Kriterium 3 entscheidet sich planmäßig nach Phase 1. Details in
+> [10-phase0-ergebnis.md](10-phase0-ergebnis.md) §4.
 
 Ehrliche Abbruchkriterien:
 
