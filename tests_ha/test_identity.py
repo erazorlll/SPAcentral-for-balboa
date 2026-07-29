@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import pytest
 from homeassistant.const import CONF_HOST, CONF_MAC, CONF_PORT
+from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.balboa_spacentral.const import (
@@ -76,19 +77,31 @@ def test_mixed_setups_do_not_collide() -> None:
     assert device_key(a) != device_key(b)
 
 
-def test_changing_the_host_keeps_the_identity() -> None:
+async def test_changing_the_host_keeps_the_identity(hass: HomeAssistant) -> None:
     """A DHCP lease must never orphan entities."""
     entry = _entry()
+    entry.add_to_hass(hass)
     before = device_key(entry)
-    entry.data = {**entry.data, CONF_HOST: "10.0.0.99"}
+
+    hass.config_entries.async_update_entry(
+        entry, data={**entry.data, CONF_HOST: "10.0.0.99"}
+    )
     assert device_key(entry) == before
 
 
-def test_a_late_mac_does_not_change_the_identity() -> None:
-    """Recorded once, honoured forever -- otherwise entities would be recreated."""
+async def test_a_late_mac_does_not_change_the_identity(hass: HomeAssistant) -> None:
+    """Recorded once, honoured forever -- otherwise entities would be recreated.
+
+    This is the path `async_setup_entry` takes when a controller reports its MAC
+    only after the handshake.
+    """
     entry = _entry()
+    entry.add_to_hass(hass)
     before = device_key(entry)
-    entry.data = {**entry.data, CONF_MAC: "00:15:27:aa:bb:cc"}
+
+    hass.config_entries.async_update_entry(
+        entry, data={**entry.data, CONF_MAC: "00:15:27:aa:bb:cc"}
+    )
     assert device_key(entry) == before, (
         "identity_source stays entry_id, so the key must not switch to the MAC"
     )
