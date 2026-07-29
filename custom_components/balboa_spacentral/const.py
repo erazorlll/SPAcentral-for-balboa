@@ -1,0 +1,33 @@
+"""Constants of the Home Assistant layer."""
+
+from __future__ import annotations
+
+from typing import Final
+
+from homeassistant.const import Platform
+
+DOMAIN: Final = "balboa_spacentral"
+MANUFACTURER: Final = "Balboa Water Group"
+
+PLATFORMS: Final[list[Platform]] = [
+    Platform.BINARY_SENSOR,
+    Platform.SENSOR,
+]
+
+# ── Configuration keys ────────────────────────────────────────────────────────
+CONF_CONNECTION: Final = "connection"
+CONF_DEVICE_PATH: Final = "device_path"
+CONF_IDENTITY_SOURCE: Final = "identity_source"
+
+CONNECTION_WIFI_MODULE: Final = "wifi_module"
+CONNECTION_GATEWAY: Final = "gateway"
+CONNECTION_SERIAL: Final = "serial"
+
+#: How the device is identified. Frozen at first successful setup and never
+#: changed afterwards -- see docs/03-geraeteidentitaet.md.
+IDENTITY_MAC: Final = "mac"
+IDENTITY_ENTRY_ID: Final = "entry_id"
+
+# ── Options ───────────────────────────────────────────────────────────────────
+OPT_SYNC_TIME: Final = "sync_time"
+DEFAULT_SYNC_TIME: Final = False

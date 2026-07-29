@@ -28,7 +28,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-      - run: pip install pytest pytest-asyncio pytest-cov
+      - name: Install
+        run: |
+          pip install pytest pytest-asyncio pytest-cov
+          pip install homeassistant pytest-homeassistant-custom-component
       - name: Tests
         run: pytest --cov=balboa --cov-report=term-missing --cov-fail-under=90
 

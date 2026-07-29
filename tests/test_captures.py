@@ -150,3 +150,43 @@ def test_panel_actions_are_visible_in_the_status(capture_panel: bytes) -> None:
 
     assert {status.lights[0] for status in statuses} == {False, True}
     assert {status.target_temperature for status in statuses} >= {33.0, 33.5, 34.0}
+
+
+def test_second_controller_reaches_the_same_conclusions(capture_spa2: bytes) -> None:
+    """A second spa, same model, same firmware, also without a MAC.
+
+    Two identical controllers on one network is precisely the case that breaks
+    identity schemes based on the model or the MAC: both would collide. Only
+    Home Assistant's own entry_id tells them apart.
+    """
+    reader, messages = _parse_all(capture_spa2)
+    assert reader.crc_errors == 0
+
+    assert not [m for m in messages if isinstance(m, ModuleConfiguration)]
+
+    config = next(m for m in messages if isinstance(m, ControlConfiguration))
+    hardware = next(m for m in messages if isinstance(m, ControlConfiguration2))
+    assert config.model == "BP6013G3"
+    assert config.version == "43.0"
+    assert hardware.pumps == (1, 1, 1, 0, 0, 0)
+
+    channels = {m.channel for m in messages if isinstance(m, ReadyMessage)}
+    assert channels == {0x10}
+
+
+def test_the_two_controllers_are_indistinguishable_by_content(
+    capture_probe: bytes, capture_spa2: bytes
+) -> None:
+    """Nothing in the protocol separates them -- which is the whole point."""
+    identities = []
+    for raw in (capture_probe, capture_spa2):
+        _, messages = _parse_all(raw)
+        config = next(m for m in messages if isinstance(m, ControlConfiguration))
+        hardware = next(m for m in messages if isinstance(m, ControlConfiguration2))
+        macs = [m for m in messages if isinstance(m, ModuleConfiguration)]
+        identities.append((config.model, config.version, hardware.pumps, bool(macs)))
+
+    assert identities[0] == identities[1], (
+        "the two spas report identical identity, so entity identity cannot "
+        "come from the device -- see docs/03-geraeteidentitaet.md"
+    )

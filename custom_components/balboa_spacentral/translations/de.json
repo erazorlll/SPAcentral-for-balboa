@@ -1,0 +1,136 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Wie ist dein Spa angeschlossen?",
+        "data": {
+          "connection": "Anschlussart"
+        },
+        "data_description": {
+          "connection": "Wähle die Hardware, die zwischen Home Assistant und dem Spa sitzt."
+        }
+      },
+      "gateway": {
+        "title": "Serieller Gateway im Netzwerk",
+        "description": "Ein Adapter wie Elfin EW11, ser2net oder ein ESPHome-Serial-Server, der den RS-485-Anschluss des Spas ins Netzwerk bringt. Er muss im TCP-Server-Modus laufen, mit 115200 Baud, 8 Datenbits, keiner Parität, 1 Stoppbit.",
+        "data": {
+          "host": "IP-Adresse",
+          "port": "Port"
+        }
+      },
+      "wifi_module": {
+        "title": "Balboa-WLAN-Modul",
+        "description": "Das originale WLAN-Modul von Balboa (bwa, Modell 50350).",
+        "data": {
+          "host": "IP-Adresse",
+          "port": "Port"
+        }
+      },
+      "serial": {
+        "title": "Serieller Adapter an diesem Rechner",
+        "description": "Ein USB- oder GPIO-RS-485-Adapter, direkt mit dem Spa verdrahtet. Nimm möglichst einen Pfad unter /dev/serial/by-id, der übersteht einen Neustart.",
+        "data": {
+          "device_path": "Gerät"
+        }
+      },
+      "discovery_confirm": {
+        "title": "Balboa-Spa gefunden",
+        "description": "Unter {host} hat ein Balboa-WLAN-Modul geantwortet. Hinzufügen?"
+      },
+      "reconfigure": {
+        "title": "Verbindung ändern",
+        "description": "Richte dieses Spa auf eine andere Adresse aus. Entitäten und Verlauf bleiben erhalten.",
+        "data": {
+          "host": "IP-Adresse",
+          "port": "Port",
+          "device_path": "Gerät"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Keine Verbindung zu dieser Adresse. Prüfe IP und Port; beim EW11 muss der TCP-Server-Modus aktiv sein.",
+      "no_data": "Verbunden, aber das Spa sendet nichts. Prüfe die seriellen Einstellungen am Gateway (115200, 8N1) und ob die RS-485-Leitungen A und B vertauscht sind.",
+      "unknown": "Unerwarteter Fehler. Einzelheiten stehen im Protokoll."
+    },
+    "abort": {
+      "already_configured": "Dieses Spa ist bereits eingerichtet.",
+      "reconfigure_successful": "Verbindung aktualisiert."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Optionen",
+        "data": {
+          "sync_time": "Spa-Uhr synchron halten"
+        },
+        "data_description": {
+          "sync_time": "Stellt die Uhr des Spas einmal pro Stunde nach Home Assistant."
+        }
+      }
+    }
+  },
+  "selector": {
+    "connection": {
+      "options": {
+        "gateway": "Serieller Gateway im Netzwerk (EW11, ser2net, ESPHome)",
+        "wifi_module": "Balboa-WLAN-Modul (bwa 50350)",
+        "serial": "Serieller Adapter an diesem Rechner"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "water_temperature": {
+        "name": "Wassertemperatur"
+      },
+      "target_temperature": {
+        "name": "Solltemperatur"
+      },
+      "heat_mode": {
+        "name": "Heizmodus",
+        "state": {
+          "ready": "Bereit",
+          "rest": "Ruhe",
+          "ready_in_rest": "Bereit in Ruhe"
+        }
+      },
+      "temperature_range": {
+        "name": "Temperaturbereich",
+        "state": {
+          "low": "Niedrig",
+          "high": "Hoch"
+        }
+      },
+      "notification": {
+        "name": "Erinnerung",
+        "state": {
+          "none": "Keine",
+          "filter": "Filter reinigen",
+          "sanitizer": "Desinfektion prüfen",
+          "ph": "pH-Wert prüfen"
+        }
+      }
+    },
+    "binary_sensor": {
+      "heating": {
+        "name": "Heizung"
+      },
+      "circulation_pump": {
+        "name": "Umwälzpumpe"
+      },
+      "filter_cycle_1": {
+        "name": "Filterzyklus 1"
+      },
+      "filter_cycle_2": {
+        "name": "Filterzyklus 2"
+      },
+      "priming": {
+        "name": "Ansaugen"
+      },
+      "hold": {
+        "name": "Halten"
+      }
+    }
+  }
+}

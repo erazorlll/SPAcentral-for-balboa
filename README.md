@@ -4,12 +4,13 @@ Native Home Assistant integration for Balboa Water Group spa controllers — sup
 original Balboa Wi-Fi module **and** RS-485 gateways such as the Elfin EW11, ser2net or a
 local serial adapter.
 
-> **Status: protocol library complete, Home Assistant layer next.**
+> **Status: protocol library and the first Home Assistant platforms are in.**
 > The complete design lives in [`docs/`](docs/00-uebersicht.md) (German).
 >
 > `custom_components/balboa_spacentral/balboa/` speaks the full protocol over TCP and
-> serial, is verified against 34,616 frames captured from a real controller, and has
-> 91 % test coverage. The entity layer is phase 2.
+> serial, is verified against 40,000+ frames captured from two real controllers, and has
+> 91 % test coverage. Setup through the UI, device identity, sensors and binary sensors
+> are done; the controls (climate, pumps, lights) are next.
 
 ## Why
 
@@ -79,3 +80,17 @@ no licence.
 ## Licence
 
 MIT
+
+## Development
+
+```bash
+pip install pytest pytest-asyncio pytest-cov ruff mypy
+pytest                      # everything
+ruff check . && mypy        # lint and types
+python tools/replay.py fixtures/ew11_idle.bin --port 8899   # a spa without a spa
+```
+
+The Home Assistant test harness imports `fcntl` and therefore only runs on Linux and
+macOS, the same platforms HA core itself is developed on. On Windows the protocol suite
+still runs in full with `pytest -p no:homeassistant`; the integration tests are covered
+by CI.

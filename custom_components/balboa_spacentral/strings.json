@@ -1,0 +1,117 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "How is your spa connected?",
+        "data": {
+          "connection": "Connection"
+        },
+        "data_description": {
+          "connection": "Pick the hardware that sits between Home Assistant and the spa."
+        }
+      },
+      "gateway": {
+        "title": "Serial gateway on the network",
+        "description": "An adapter such as an Elfin EW11, ser2net or an ESPHome serial server that brings the spa's RS-485 connection onto the network. It has to run in TCP server mode at 115200 baud, 8 data bits, no parity, 1 stop bit.",
+        "data": {
+          "host": "IP address",
+          "port": "Port"
+        }
+      },
+      "wifi_module": {
+        "title": "Balboa Wi-Fi module",
+        "description": "The original Wi-Fi module made by Balboa (bwa, model 50350).",
+        "data": {
+          "host": "IP address",
+          "port": "Port"
+        }
+      },
+      "serial": {
+        "title": "Serial adapter on this machine",
+        "description": "A USB or GPIO RS-485 adapter wired directly to the spa. Prefer a path under /dev/serial/by-id, which survives a reboot.",
+        "data": {
+          "device_path": "Device"
+        }
+      },
+      "discovery_confirm": {
+        "title": "Balboa spa found",
+        "description": "A Balboa Wi-Fi module answered at {host}. Add it?"
+      },
+      "reconfigure": {
+        "title": "Change the connection",
+        "description": "Point this spa at a different address. Its entities and history stay as they are.",
+        "data": {
+          "host": "IP address",
+          "port": "Port",
+          "device_path": "Device"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "No connection to that address. Check the IP and port; on an EW11 make sure TCP server mode is switched on.",
+      "no_data": "Connected, but the spa sends nothing. Check the serial settings on the gateway (115200, 8N1) and whether the RS-485 A and B wires are swapped.",
+      "unknown": "Unexpected error. The log has the details."
+    },
+    "abort": {
+      "already_configured": "This spa is already set up.",
+      "reconfigure_successful": "Connection updated."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Options",
+        "data": {
+          "sync_time": "Keep the spa clock in sync"
+        },
+        "data_description": {
+          "sync_time": "Sets the spa's clock from Home Assistant once an hour."
+        }
+      }
+    }
+  },
+  "selector": {
+    "connection": {
+      "options": {
+        "gateway": "Serial gateway on the network (EW11, ser2net, ESPHome)",
+        "wifi_module": "Balboa Wi-Fi module (bwa 50350)",
+        "serial": "Serial adapter on this machine"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "water_temperature": { "name": "Water temperature" },
+      "target_temperature": { "name": "Target temperature" },
+      "heat_mode": {
+        "name": "Heat mode",
+        "state": {
+          "ready": "Ready",
+          "rest": "Rest",
+          "ready_in_rest": "Ready in rest"
+        }
+      },
+      "temperature_range": {
+        "name": "Temperature range",
+        "state": { "low": "Low", "high": "High" }
+      },
+      "notification": {
+        "name": "Reminder",
+        "state": {
+          "none": "None",
+          "filter": "Clean the filter",
+          "sanitizer": "Check the sanitizer",
+          "ph": "Check the pH"
+        }
+      }
+    },
+    "binary_sensor": {
+      "heating": { "name": "Heating" },
+      "circulation_pump": { "name": "Circulation pump" },
+      "filter_cycle_1": { "name": "Filter cycle 1" },
+      "filter_cycle_2": { "name": "Filter cycle 2" },
+      "priming": { "name": "Priming" },
+      "hold": { "name": "Hold" }
+    }
+  }
+}

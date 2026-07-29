@@ -11,6 +11,24 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 FIXTURES = REPO_ROOT / "fixtures"
 
 sys.path.insert(0, str(REPO_ROOT / "custom_components" / "balboa_spacentral"))
+sys.path.insert(0, str(REPO_ROOT))
+
+#: Home Assistant's test harness imports `fcntl`, so it cannot run on Windows --
+#: the same reason HA core is developed on Linux and macOS only. The protocol
+#: library has no such dependency and is tested everywhere; the integration
+#: tests are collected on Linux, which is what CI runs.
+try:  # pragma: no cover - platform dependent
+    import fcntl  # noqa: F401
+
+    HA_TESTS_RUNNABLE = True
+except ImportError:  # pragma: no cover - platform dependent
+    HA_TESTS_RUNNABLE = False
+
+collect_ignore_glob = (
+    []
+    if HA_TESTS_RUNNABLE
+    else ["test_identity.py", "test_config_flow.py", "test_integration.py"]
+)
 
 
 def _load(name: str) -> bytes:
@@ -49,3 +67,12 @@ def capture_probe() -> bytes:
 def capture_panel() -> bytes:
     """Three minutes with the control panel being operated."""
     return _load("ew11_panel")
+
+
+@pytest.fixture(scope="session")
+def capture_spa2() -> bytes:
+    """A second, physically separate controller of the same model.
+
+    Guards against overfitting the parser to one device.
+    """
+    return _load("spa2_probe")
