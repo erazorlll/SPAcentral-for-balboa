@@ -64,7 +64,9 @@ deliberately deferred until someone with that hardware can test it.
 
 - Setup entirely through the UI, with connection presets in plain language
 - Any number of spas side by side
-- `climate`, `fan` (pumps and blower), `light`, `switch`, `sensor`, `binary_sensor`
+- `climate`, `fan` (pumps and blower), `light`, `switch`, `sensor`, `binary_sensor`,
+  `time` and `number` for the filter cycles, `event` for reminders
+- Diagnostics download with the address redacted
 - Only creates entities the spa actually reports
 - Diagnostics download, English and German translations
 - Reconnect with exponential backoff and stale-stream detection
