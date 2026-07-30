@@ -13,7 +13,7 @@ from homeassistant.const import CONF_HOST, CONF_MAC, CONF_PORT
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.balboa_spacentral.const import (
+from custom_components.spacentral_for_balboa.const import (
     CONF_CONNECTION,
     CONF_IDENTITY_SOURCE,
     CONNECTION_GATEWAY,
@@ -21,7 +21,7 @@ from custom_components.balboa_spacentral.const import (
     IDENTITY_ENTRY_ID,
     IDENTITY_MAC,
 )
-from custom_components.balboa_spacentral.identity import (
+from custom_components.spacentral_for_balboa.identity import (
     device_key,
     entity_unique_id,
     initial_identity_source,

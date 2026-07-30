@@ -12,7 +12,7 @@ from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers.service_info.dhcp import DhcpServiceInfo
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.balboa_spacentral.const import (
+from custom_components.spacentral_for_balboa.const import (
     CONF_CONNECTION,
     CONF_DEVICE_PATH,
     CONF_IDENTITY_SOURCE,
@@ -24,14 +24,14 @@ from custom_components.balboa_spacentral.const import (
     IDENTITY_MAC,
 )
 
-PROBE = "custom_components.balboa_spacentral.config_flow._probe"
+PROBE = "custom_components.spacentral_for_balboa.config_flow._probe"
 
 
 @pytest.fixture(autouse=True)
 def _no_setup():
     """Do not actually connect after the flow finishes."""
     with patch(
-        "custom_components.balboa_spacentral.async_setup_entry",
+        "custom_components.spacentral_for_balboa.async_setup_entry",
         return_value=True,
     ):
         yield
@@ -117,7 +117,7 @@ async def test_serial_setup(hass: HomeAssistant) -> None:
 async def test_connection_errors_are_explained(
     hass: HomeAssistant, exception: str, expected: str
 ) -> None:
-    from custom_components.balboa_spacentral import config_flow
+    from custom_components.spacentral_for_balboa import config_flow
 
     result = await _choose(hass, CONNECTION_GATEWAY)
     with patch(PROBE, AsyncMock(side_effect=getattr(config_flow, exception))):

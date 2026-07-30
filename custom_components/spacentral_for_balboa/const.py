@@ -6,7 +6,7 @@ from typing import Final
 
 from homeassistant.const import Platform
 
-DOMAIN: Final = "balboa_spacentral"
+DOMAIN: Final = "spacentral_for_balboa"
 MANUFACTURER: Final = "Balboa Water Group"
 
 PLATFORMS: Final[list[Platform]] = [

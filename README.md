@@ -27,7 +27,7 @@ local serial adapter.
 
 ### By hand
 
-Copy `custom_components/balboa_spacentral/` into your `<config>/custom_components/` and
+Copy `custom_components/spacentral_for_balboa/` into your `<config>/custom_components/` and
 restart Home Assistant.
 
 ## Setup

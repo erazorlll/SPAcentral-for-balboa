@@ -17,7 +17,7 @@ import sys
 from pathlib import Path
 
 _PACKAGE_ROOT = Path(__file__).resolve().parent.parent / "custom_components"
-sys.path.insert(0, str(_PACKAGE_ROOT / "balboa_spacentral"))
+sys.path.insert(0, str(_PACKAGE_ROOT / "spacentral_for_balboa"))
 
 from balboa.framing import FrameReader  # noqa: E402  (path set just above)
 from balboa.messages import (  # noqa: E402

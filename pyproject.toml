@@ -2,14 +2,14 @@
 # No python_version pin: match whatever interpreter is running, so the same
 # config works on the developer machine and in CI.
 warn_unreachable = true
-# Resolve modules as custom_components.balboa_spacentral.* so the
+# Resolve modules as custom_components.spacentral_for_balboa.* so the
 # per-module overrides below actually match them.
 mypy_path = "."
 explicit_package_bases = true
 namespace_packages = true
 
 # The protocol library is fully typed and held to it.
-files = ["custom_components/balboa_spacentral"]
+files = ["custom_components/spacentral_for_balboa"]
 strict = true
 
 [[tool.mypy.overrides]]
@@ -29,7 +29,7 @@ ignore_missing_imports = true
 # not see (it is skipped above), so subclassing and decorating it all look like
 # Any. Holding this layer to --strict would mean annotating around Home
 # Assistant rather than describing our own code.
-module = "custom_components.balboa_spacentral.*"
+module = "custom_components.spacentral_for_balboa.*"
 disallow_subclassing_any = false
 disallow_untyped_decorators = false
 disallow_any_generics = false
@@ -38,7 +38,7 @@ warn_return_any = false
 [[tool.mypy.overrides]]
 # ... but the protocol library depends on nothing external and stays strict.
 # Listed last on purpose: with several matching patterns, mypy takes the last.
-module = "custom_components.balboa_spacentral.balboa.*"
+module = "custom_components.spacentral_for_balboa.balboa.*"
 disallow_subclassing_any = true
 disallow_untyped_decorators = true
 disallow_any_generics = true

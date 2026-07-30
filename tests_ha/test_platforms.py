@@ -31,16 +31,16 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.balboa_spacentral.balboa.framing import FrameReader
-from custom_components.balboa_spacentral.balboa.messages import (
+from custom_components.spacentral_for_balboa.balboa.framing import FrameReader
+from custom_components.spacentral_for_balboa.balboa.messages import (
     ControlConfiguration,
     ControlConfiguration2,
     FilterCycles,
     StatusUpdate,
     parse_frame,
 )
-from custom_components.balboa_spacentral.balboa.transport import Transport
-from custom_components.balboa_spacentral.const import (
+from custom_components.spacentral_for_balboa.balboa.transport import Transport
+from custom_components.spacentral_for_balboa.const import (
     CONF_CONNECTION,
     CONF_IDENTITY_SOURCE,
     CONNECTION_GATEWAY,
@@ -114,7 +114,7 @@ async def spa(hass: HomeAssistant):
     entry.add_to_hass(hass)
 
     with patch(
-        "custom_components.balboa_spacentral.build_transport", return_value=transport
+        "custom_components.spacentral_for_balboa.build_transport", return_value=transport
     ):
         assert await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
@@ -310,7 +310,7 @@ async def test_reminder_event_entity_exists(hass: HomeAssistant, spa) -> None:
 async def test_diagnostics_hide_the_address(hass: HomeAssistant, spa) -> None:
     from homeassistant.components.diagnostics import REDACTED
 
-    from custom_components.balboa_spacentral.diagnostics import (
+    from custom_components.spacentral_for_balboa.diagnostics import (
         async_get_config_entry_diagnostics,
     )
 
@@ -350,7 +350,7 @@ async def test_filter_cycle_entities_exist_without_the_frame(
     entry.add_to_hass(hass)
 
     with patch(
-        "custom_components.balboa_spacentral.build_transport",
+        "custom_components.spacentral_for_balboa.build_transport",
         return_value=ReplayTransport(frames),
     ):
         assert await hass.config_entries.async_setup(entry.entry_id)
