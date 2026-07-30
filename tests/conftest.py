@@ -35,7 +35,7 @@ def _fast_timings(monkeypatch: pytest.MonkeyPatch) -> None:
     from balboa import client as client_module
 
     monkeypatch.setattr(client_module, "REQUEST_INTERVAL", 0.001)
-    monkeypatch.setattr(client_module, "TOGGLE_INTERVAL", 0.001)
+    monkeypatch.setattr(client_module, "TOGGLE_CONFIRM_TIMEOUT", 0.05)
 
 
 @pytest.fixture(scope="session")

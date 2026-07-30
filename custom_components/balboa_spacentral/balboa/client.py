@@ -60,8 +60,14 @@ INITIAL_BACKOFF = 1.0
 MAX_BACKOFF = 60.0
 
 #: A toggle advances one step, so reaching a target speed can take several.
-#: The spa needs a moment to report the new state between them.
-TOGGLE_INTERVAL = 0.4
+#: Each attempt waits for a status frame that arrived *after* the toggle was
+#: sent, rather than sleeping a fixed duration -- sending disrupts the bus
+#: enough that the next status frame can lag up to 2.0 s, measured against
+#: real hardware during our own transmissions. A shorter fixed sleep
+#: evaluates the old, pre-toggle state, judges the toggle not to have
+#: landed, and sends a second one that cancels the first out -- visible on
+#: hardware as the equipment switching on and immediately back off.
+TOGGLE_CONFIRM_TIMEOUT = 2.5
 TOGGLE_LIMIT = 4
 #: Spacing between the four configuration requests, so we do not flood the bus.
 REQUEST_INTERVAL = 0.2
@@ -99,6 +105,8 @@ class SpaClient:
         self._shutdown = False
 
         self._last_frame_at: float = 0.0
+        self._last_status_at: float = 0.0
+        self._status_event = asyncio.Event()
         self._last_fault_request: float = 0.0
         self.unknown_messages = 0
 
@@ -239,6 +247,26 @@ class SpaClient:
     async def toggle_item(self, item: ToggleItem) -> None:
         await self._send(toggle(item))
 
+    async def _send_toggle_and_await_status(self, item: ToggleItem) -> None:
+        """Send one toggle, then wait for a status frame sent after it.
+
+        Reading `self._state` right after sending would often still see the
+        pre-toggle status: our own transmission can delay the next one by up
+        to 2 s (measured). Waiting here, rather than in every caller, means a
+        caller's next state check reflects the toggle it just sent.
+        """
+        sent_at = time.monotonic()
+        await self._send(toggle(item))
+        with contextlib.suppress(TimeoutError):
+            await asyncio.wait_for(
+                self._await_status_since(sent_at), TOGGLE_CONFIRM_TIMEOUT
+            )
+
+    async def _await_status_since(self, since: float) -> None:
+        while self._last_status_at <= since:
+            self._status_event.clear()
+            await self._status_event.wait()
+
     async def set_pump(self, index: int, speed: int) -> None:
         """Drive pump `index` to `speed` (0 = off).
 
@@ -255,8 +283,7 @@ class SpaClient:
         for _ in range(TOGGLE_LIMIT):
             if self._pump_reached(index, speed, speeds):
                 return
-            await self._send(toggle(item))
-            await asyncio.sleep(TOGGLE_INTERVAL)
+            await self._send_toggle_and_await_status(item)
         _LOGGER.debug(
             "%s: pump %d did not reach %s after %d toggles",
             self.description,
@@ -290,8 +317,7 @@ class SpaClient:
             reached = (current != 0) == (speed != 0) if speeds == 1 else current == speed
             if reached:
                 return
-            await self._send(toggle(ToggleItem.BLOWER))
-            await asyncio.sleep(TOGGLE_INTERVAL)
+            await self._send_toggle_and_await_status(ToggleItem.BLOWER)
 
     async def set_heat_mode(self, mode: HeatMode) -> None:
         """Cycle the heating mode until it matches.
@@ -304,16 +330,14 @@ class SpaClient:
         for _ in range(TOGGLE_LIMIT):
             if self._state.status and self._state.status.heat_mode is mode:
                 return
-            await self._send(toggle(ToggleItem.HEATING_MODE))
-            await asyncio.sleep(TOGGLE_INTERVAL)
+            await self._send_toggle_and_await_status(ToggleItem.HEATING_MODE)
 
     async def set_temperature_range(self, temperature_range: TemperatureRange) -> None:
         for _ in range(TOGGLE_LIMIT):
             status = self._state.status
             if status and status.temperature_range is temperature_range:
                 return
-            await self._send(toggle(ToggleItem.TEMPERATURE_RANGE))
-            await asyncio.sleep(TOGGLE_INTERVAL)
+            await self._send_toggle_and_await_status(ToggleItem.TEMPERATURE_RANGE)
 
     @property
     def temperature_unit(self) -> TemperatureUnit:
@@ -440,6 +464,8 @@ class SpaClient:
         if isinstance(message, StatusUpdate):
             previous = self._state.status
             self._state = self._state.with_status(message)
+            self._last_status_at = time.monotonic()
+            self._status_event.set()
             self._check_configured()
             # Ignore the clock ticking so listeners are not woken every minute.
             return previous is None or _significant_change(previous, message)
