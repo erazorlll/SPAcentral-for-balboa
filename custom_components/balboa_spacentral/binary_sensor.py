@@ -30,7 +30,10 @@ class BalboaBinarySensorDescription(BinarySensorEntityDescription):
 BINARY_SENSORS: tuple[BalboaBinarySensorDescription, ...] = (
     BalboaBinarySensorDescription(
         key="heating",
-        device_class=BinarySensorDeviceClass.HEAT,
+        # POWER, not HEAT: HEAT is Home Assistant's "abnormal heat detected"
+        # alarm class (states "Normal"/"Hot"), meant for a safety sensor, not
+        # for "the heater element is currently on".
+        device_class=BinarySensorDeviceClass.POWER,
         value=lambda state: bool(state.status and state.status.heating),
     ),
     BalboaBinarySensorDescription(
