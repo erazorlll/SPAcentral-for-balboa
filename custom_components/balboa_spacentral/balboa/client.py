@@ -300,8 +300,15 @@ class SpaClient:
         return current == wanted
 
     async def set_light(self, index: int, on: bool) -> None:
-        if self._state.is_light_on(index) != on:
-            await self._send(toggle(ToggleItem.light(index)))
+        if self._state.is_light_on(index) == on:
+            _LOGGER.debug(
+                "%s: light %d already reports %s, not sending a toggle",
+                self.description,
+                index + 1,
+                "on" if on else "off",
+            )
+            return
+        await self._send(toggle(ToggleItem.light(index)))
 
     async def set_aux(self, index: int, on: bool) -> None:
         if self._state.is_aux_on(index) != on:
