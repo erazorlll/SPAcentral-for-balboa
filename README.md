@@ -20,10 +20,13 @@ local serial adapter.
 
 ### Through HACS
 
-1. HACS → three-dot menu → **Custom repositories**
-2. Add `https://github.com/erazorlll/SPAcentral-for-balboa`, category **Integration**
-3. Search for **SPAcentral for Balboa Whirlpool** in HACS and download it
-4. Restart Home Assistant
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=erazorlll&repository=SPAcentral-for-balboa&category=integration)
+
+SPAcentral for Balboa Whirlpool is in the default HACS store — no custom repository needed.
+
+1. HACS → **Integrations** → search for **SPAcentral for Balboa Whirlpool**
+2. Download it
+3. Restart Home Assistant
 
 ### By hand
 
