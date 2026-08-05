@@ -1,0 +1,235 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "¿Cómo está conectado tu spa?",
+        "data": {
+          "connection": "Conexión"
+        },
+        "data_description": {
+          "connection": "Elige el hardware que hay entre Home Assistant y el spa."
+        }
+      },
+      "gateway": {
+        "title": "Pasarela serie en la red",
+        "description": "Un adaptador como el Elfin EW11, ser2net o un servidor serie ESPHome que lleva la conexión RS-485 del spa a la red. Debe funcionar en modo servidor TCP a 115200 baudios, 8 bits de datos, sin paridad, 1 bit de parada.",
+        "data": {
+          "host": "Dirección IP",
+          "port": "Puerto"
+        }
+      },
+      "wifi_module": {
+        "title": "Módulo Wi-Fi Balboa",
+        "description": "El módulo Wi-Fi original de Balboa (bwa, modelo 50350).",
+        "data": {
+          "host": "Dirección IP",
+          "port": "Puerto"
+        }
+      },
+      "serial": {
+        "title": "Adaptador serie en este equipo",
+        "description": "Un adaptador RS-485 USB o GPIO conectado directamente al spa. Prefiere una ruta bajo /dev/serial/by-id, que sobrevive a un reinicio.",
+        "data": {
+          "device_path": "Dispositivo"
+        }
+      },
+      "discovery_confirm": {
+        "title": "Spa Balboa encontrado",
+        "description": "Un módulo Wi-Fi Balboa ha respondido en {host}. ¿Añadirlo?"
+      },
+      "reconfigure": {
+        "title": "Cambiar la conexión",
+        "description": "Apunta este spa a otra dirección. Sus entidades e historial se conservan tal cual.",
+        "data": {
+          "host": "Dirección IP",
+          "port": "Puerto",
+          "device_path": "Dispositivo"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Sin conexión a esa dirección. Comprueba la IP y el puerto; en un EW11 asegúrate de que el modo servidor TCP esté activado.",
+      "no_data": "Conectado, pero el spa no envía nada. Comprueba los ajustes serie de la pasarela (115200, 8N1) y si los cables RS-485 A y B están intercambiados.",
+      "unknown": "Error inesperado. El registro tiene los detalles."
+    },
+    "abort": {
+      "already_configured": "Este spa ya está configurado.",
+      "reconfigure_successful": "Conexión actualizada."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opciones",
+        "data": {
+          "sync_time": "Mantener sincronizado el reloj del spa"
+        },
+        "data_description": {
+          "sync_time": "Ajusta el reloj del spa según Home Assistant una vez por hora."
+        }
+      }
+    }
+  },
+  "selector": {
+    "connection": {
+      "options": {
+        "gateway": "Pasarela serie en la red (EW11, ser2net, ESPHome)",
+        "wifi_module": "Módulo Wi-Fi Balboa (bwa 50350)",
+        "serial": "Adaptador serie en este equipo"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "water_temperature": {
+        "name": "Temperatura del agua"
+      },
+      "target_temperature": {
+        "name": "Temperatura objetivo"
+      },
+      "heat_mode": {
+        "name": "Modo de calefacción",
+        "state": {
+          "ready": "Listo",
+          "rest": "Reposo",
+          "ready_in_rest": "Listo en reposo"
+        }
+      },
+      "temperature_range": {
+        "name": "Rango de temperatura",
+        "state": {
+          "low": "Bajo",
+          "high": "Alto"
+        }
+      },
+      "notification": {
+        "name": "Recordatorio",
+        "state": {
+          "none": "Ninguno",
+          "filter": "Limpiar el filtro",
+          "sanitizer": "Revisar el desinfectante",
+          "ph": "Revisar el pH"
+        }
+      },
+      "last_fault": {
+        "name": "Último fallo",
+        "state": {
+          "clock_failed": "Fallo del reloj",
+          "gfci_test_failed": "Fallo en la prueba del diferencial",
+          "heater_dry": "Calentador en seco",
+          "heater_may_be_dry": "El calentador podría estar en seco",
+          "heater_too_hot": "Calentador demasiado caliente",
+          "hot_fault": "Sobrecalentamiento",
+          "low_water_flow": "Flujo de agua bajo",
+          "priming_mode": "Cebado",
+          "program_memory_failure": "Fallo en la memoria del programa",
+          "pump_may_be_stuck": "Una bomba podría estar atascada en marcha",
+          "sensor_a_fault": "Fallo del sensor A",
+          "sensor_b_fault": "Fallo del sensor B",
+          "sensors_out_of_sync": "Sensores desincronizados",
+          "sensors_out_of_sync_service": "Sensores desincronizados, requiere servicio",
+          "settings_reset": "Ajustes restablecidos",
+          "standby_mode": "En espera",
+          "water_flow_failed": "Fallo de flujo de agua",
+          "water_too_hot": "Agua demasiado caliente",
+          "unknown": "Código desconocido"
+        }
+      }
+    },
+    "binary_sensor": {
+      "heating": {
+        "name": "Calefacción"
+      },
+      "circulation_pump": {
+        "name": "Bomba de circulación"
+      },
+      "filter_cycle_1": {
+        "name": "Ciclo de filtrado 1"
+      },
+      "filter_cycle_2": {
+        "name": "Ciclo de filtrado 2"
+      },
+      "priming": {
+        "name": "Cebado"
+      },
+      "hold": {
+        "name": "Retención"
+      }
+    },
+    "fan": {
+      "pump_1": {
+        "name": "Bomba 1"
+      },
+      "pump_2": {
+        "name": "Bomba 2"
+      },
+      "pump_3": {
+        "name": "Bomba 3"
+      },
+      "pump_4": {
+        "name": "Bomba 4"
+      },
+      "pump_5": {
+        "name": "Bomba 5"
+      },
+      "pump_6": {
+        "name": "Bomba 6"
+      },
+      "blower": {
+        "name": "Soplador"
+      }
+    },
+    "light": {
+      "light_1": {
+        "name": "Luz 1"
+      },
+      "light_2": {
+        "name": "Luz 2"
+      }
+    },
+    "switch": {
+      "aux_1": {
+        "name": "Auxiliar 1"
+      },
+      "aux_2": {
+        "name": "Auxiliar 2"
+      },
+      "mister": {
+        "name": "Nebulizador"
+      },
+      "filter_cycle_2_enabled": {
+        "name": "Ciclo de filtrado 2"
+      }
+    },
+    "time": {
+      "filter_cycle_1_start": {
+        "name": "Inicio ciclo de filtrado 1"
+      },
+      "filter_cycle_2_start": {
+        "name": "Inicio ciclo de filtrado 2"
+      }
+    },
+    "number": {
+      "filter_cycle_1_duration": {
+        "name": "Duración ciclo de filtrado 1"
+      },
+      "filter_cycle_2_duration": {
+        "name": "Duración ciclo de filtrado 2"
+      }
+    },
+    "event": {
+      "reminder": {
+        "name": "Recordatorio",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "filter": "Limpiar el filtro",
+              "sanitizer": "Revisar el desinfectante",
+              "ph": "Revisar el pH"
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,235 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Hoe is je spa aangesloten?",
+        "data": {
+          "connection": "Verbinding"
+        },
+        "data_description": {
+          "connection": "Kies de hardware die tussen Home Assistant en de spa zit."
+        }
+      },
+      "gateway": {
+        "title": "Seriële gateway in het netwerk",
+        "description": "Een adapter zoals een Elfin EW11, ser2net of een ESPHome seriële server die de RS-485-aansluiting van de spa naar het netwerk brengt. Moet draaien in TCP-servermodus op 115200 baud, 8 databits, geen pariteit, 1 stopbit.",
+        "data": {
+          "host": "IP-adres",
+          "port": "Poort"
+        }
+      },
+      "wifi_module": {
+        "title": "Balboa wifi-module",
+        "description": "De originele wifi-module van Balboa (bwa, model 50350).",
+        "data": {
+          "host": "IP-adres",
+          "port": "Poort"
+        }
+      },
+      "serial": {
+        "title": "Seriële adapter op deze machine",
+        "description": "Een USB- of GPIO RS-485-adapter, rechtstreeks op de spa aangesloten. Geef de voorkeur aan een pad onder /dev/serial/by-id, dat een herstart overleeft.",
+        "data": {
+          "device_path": "Apparaat"
+        }
+      },
+      "discovery_confirm": {
+        "title": "Balboa-spa gevonden",
+        "description": "Een Balboa wifi-module heeft geantwoord op {host}. Toevoegen?"
+      },
+      "reconfigure": {
+        "title": "Verbinding wijzigen",
+        "description": "Wijs deze spa naar een ander adres. Entiteiten en geschiedenis blijven behouden.",
+        "data": {
+          "host": "IP-adres",
+          "port": "Poort",
+          "device_path": "Apparaat"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Geen verbinding met dat adres. Controleer het IP-adres en de poort; zorg bij een EW11 dat de TCP-servermodus aanstaat.",
+      "no_data": "Verbonden, maar de spa stuurt niets. Controleer de seriële instellingen van de gateway (115200, 8N1) en of de RS-485-draden A en B zijn verwisseld.",
+      "unknown": "Onverwachte fout. Details staan in het log."
+    },
+    "abort": {
+      "already_configured": "Deze spa is al ingesteld.",
+      "reconfigure_successful": "Verbinding bijgewerkt."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opties",
+        "data": {
+          "sync_time": "Klok van de spa synchroon houden"
+        },
+        "data_description": {
+          "sync_time": "Stelt de klok van de spa één keer per uur in aan de hand van Home Assistant."
+        }
+      }
+    }
+  },
+  "selector": {
+    "connection": {
+      "options": {
+        "gateway": "Seriële gateway in het netwerk (EW11, ser2net, ESPHome)",
+        "wifi_module": "Balboa wifi-module (bwa 50350)",
+        "serial": "Seriële adapter op deze machine"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "water_temperature": {
+        "name": "Watertemperatuur"
+      },
+      "target_temperature": {
+        "name": "Doeltemperatuur"
+      },
+      "heat_mode": {
+        "name": "Verwarmingsmodus",
+        "state": {
+          "ready": "Gereed",
+          "rest": "Rust",
+          "ready_in_rest": "Gereed in rust"
+        }
+      },
+      "temperature_range": {
+        "name": "Temperatuurbereik",
+        "state": {
+          "low": "Laag",
+          "high": "Hoog"
+        }
+      },
+      "notification": {
+        "name": "Herinnering",
+        "state": {
+          "none": "Geen",
+          "filter": "Filter reinigen",
+          "sanitizer": "Ontsmettingsmiddel controleren",
+          "ph": "pH controleren"
+        }
+      },
+      "last_fault": {
+        "name": "Laatste storing",
+        "state": {
+          "clock_failed": "Klok defect",
+          "gfci_test_failed": "Aardlekschakelaar-test mislukt",
+          "heater_dry": "Verwarmer droog",
+          "heater_may_be_dry": "Verwarmer mogelijk droog",
+          "heater_too_hot": "Verwarmer te heet",
+          "hot_fault": "Oververhitting",
+          "low_water_flow": "Te lage waterdoorstroming",
+          "priming_mode": "Aanzuigen",
+          "program_memory_failure": "Fout in programmageheugen",
+          "pump_may_be_stuck": "Een pomp staat mogelijk vast aan",
+          "sensor_a_fault": "Fout sensor A",
+          "sensor_b_fault": "Fout sensor B",
+          "sensors_out_of_sync": "Sensoren niet synchroon",
+          "sensors_out_of_sync_service": "Sensoren niet synchroon, onderhoud nodig",
+          "settings_reset": "Instellingen gereset",
+          "standby_mode": "Stand-by",
+          "water_flow_failed": "Waterdoorstroming uitgevallen",
+          "water_too_hot": "Water te heet",
+          "unknown": "Onbekende code"
+        }
+      }
+    },
+    "binary_sensor": {
+      "heating": {
+        "name": "Verwarming"
+      },
+      "circulation_pump": {
+        "name": "Circulatiepomp"
+      },
+      "filter_cycle_1": {
+        "name": "Filtercyclus 1"
+      },
+      "filter_cycle_2": {
+        "name": "Filtercyclus 2"
+      },
+      "priming": {
+        "name": "Aanzuigen"
+      },
+      "hold": {
+        "name": "Vasthouden"
+      }
+    },
+    "fan": {
+      "pump_1": {
+        "name": "Pomp 1"
+      },
+      "pump_2": {
+        "name": "Pomp 2"
+      },
+      "pump_3": {
+        "name": "Pomp 3"
+      },
+      "pump_4": {
+        "name": "Pomp 4"
+      },
+      "pump_5": {
+        "name": "Pomp 5"
+      },
+      "pump_6": {
+        "name": "Pomp 6"
+      },
+      "blower": {
+        "name": "Blazer"
+      }
+    },
+    "light": {
+      "light_1": {
+        "name": "Licht 1"
+      },
+      "light_2": {
+        "name": "Licht 2"
+      }
+    },
+    "switch": {
+      "aux_1": {
+        "name": "Extra 1"
+      },
+      "aux_2": {
+        "name": "Extra 2"
+      },
+      "mister": {
+        "name": "Vernevelaar"
+      },
+      "filter_cycle_2_enabled": {
+        "name": "Filtercyclus 2"
+      }
+    },
+    "time": {
+      "filter_cycle_1_start": {
+        "name": "Start filtercyclus 1"
+      },
+      "filter_cycle_2_start": {
+        "name": "Start filtercyclus 2"
+      }
+    },
+    "number": {
+      "filter_cycle_1_duration": {
+        "name": "Duur filtercyclus 1"
+      },
+      "filter_cycle_2_duration": {
+        "name": "Duur filtercyclus 2"
+      }
+    },
+    "event": {
+      "reminder": {
+        "name": "Herinnering",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "filter": "Filter reinigen",
+              "sanitizer": "Ontsmettingsmiddel controleren",
+              "ph": "pH controleren"
+            }
+          }
+        }
+      }
+    }
+  }
+}

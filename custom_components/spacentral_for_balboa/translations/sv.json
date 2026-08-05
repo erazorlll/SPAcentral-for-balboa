@@ -1,0 +1,235 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Hur är din spa ansluten?",
+        "data": {
+          "connection": "Anslutning"
+        },
+        "data_description": {
+          "connection": "Välj vilken maskinvara som sitter mellan Home Assistant och spabadet."
+        }
+      },
+      "gateway": {
+        "title": "Seriell gateway i nätverket",
+        "description": "En adapter som Elfin EW11, ser2net eller en ESPHome seriell server som för ut spabadets RS-485-anslutning till nätverket. Måste köra i TCP-serverläge på 115200 baud, 8 databitar, ingen paritet, 1 stoppbit.",
+        "data": {
+          "host": "IP-adress",
+          "port": "Port"
+        }
+      },
+      "wifi_module": {
+        "title": "Balboa Wi-Fi-modul",
+        "description": "Balboas originalmodul för Wi-Fi (bwa, modell 50350).",
+        "data": {
+          "host": "IP-adress",
+          "port": "Port"
+        }
+      },
+      "serial": {
+        "title": "Seriell adapter på den här maskinen",
+        "description": "En USB- eller GPIO RS-485-adapter kopplad direkt till spabadet. Föredra en sökväg under /dev/serial/by-id, som överlever en omstart.",
+        "data": {
+          "device_path": "Enhet"
+        }
+      },
+      "discovery_confirm": {
+        "title": "Balboa-spa hittades",
+        "description": "En Balboa Wi-Fi-modul svarade på {host}. Lägg till den?"
+      },
+      "reconfigure": {
+        "title": "Ändra anslutningen",
+        "description": "Peka det här spabadet mot en annan adress. Entiteter och historik behålls som de är.",
+        "data": {
+          "host": "IP-adress",
+          "port": "Port",
+          "device_path": "Enhet"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Ingen anslutning till den adressen. Kontrollera IP och port; på en EW11, se till att TCP-serverläget är påslaget.",
+      "no_data": "Ansluten, men spabadet skickar inget. Kontrollera gatewayens seriella inställningar (115200, 8N1) och om RS-485-ledarna A och B är omkastade.",
+      "unknown": "Oväntat fel. Loggen har detaljerna."
+    },
+    "abort": {
+      "already_configured": "Det här spabadet är redan konfigurerat.",
+      "reconfigure_successful": "Anslutningen uppdaterad."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Alternativ",
+        "data": {
+          "sync_time": "Håll spabadets klocka synkroniserad"
+        },
+        "data_description": {
+          "sync_time": "Ställer spabadets klocka efter Home Assistant en gång i timmen."
+        }
+      }
+    }
+  },
+  "selector": {
+    "connection": {
+      "options": {
+        "gateway": "Seriell gateway i nätverket (EW11, ser2net, ESPHome)",
+        "wifi_module": "Balboa Wi-Fi-modul (bwa 50350)",
+        "serial": "Seriell adapter på den här maskinen"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "water_temperature": {
+        "name": "Vattentemperatur"
+      },
+      "target_temperature": {
+        "name": "Måltemperatur"
+      },
+      "heat_mode": {
+        "name": "Uppvärmningsläge",
+        "state": {
+          "ready": "Redo",
+          "rest": "Vila",
+          "ready_in_rest": "Redo i vila"
+        }
+      },
+      "temperature_range": {
+        "name": "Temperaturintervall",
+        "state": {
+          "low": "Lågt",
+          "high": "Högt"
+        }
+      },
+      "notification": {
+        "name": "Påminnelse",
+        "state": {
+          "none": "Ingen",
+          "filter": "Rengör filtret",
+          "sanitizer": "Kontrollera desinfektionsmedlet",
+          "ph": "Kontrollera pH"
+        }
+      },
+      "last_fault": {
+        "name": "Senaste felet",
+        "state": {
+          "clock_failed": "Klockfel",
+          "gfci_test_failed": "Test av jordfelsbrytare misslyckades",
+          "heater_dry": "Värmaren torr",
+          "heater_may_be_dry": "Värmaren kan vara torr",
+          "heater_too_hot": "Värmaren för varm",
+          "hot_fault": "Överhettning",
+          "low_water_flow": "För lågt vattenflöde",
+          "priming_mode": "Priming",
+          "program_memory_failure": "Fel i programminnet",
+          "pump_may_be_stuck": "En pump kan sitta fast i påslaget läge",
+          "sensor_a_fault": "Fel på sensor A",
+          "sensor_b_fault": "Fel på sensor B",
+          "sensors_out_of_sync": "Sensorerna osynkroniserade",
+          "sensors_out_of_sync_service": "Sensorerna osynkroniserade, kontakta service",
+          "settings_reset": "Inställningarna återställda",
+          "standby_mode": "Standby",
+          "water_flow_failed": "Vattenflödet uteblev",
+          "water_too_hot": "Vattnet för varmt",
+          "unknown": "Okänd kod"
+        }
+      }
+    },
+    "binary_sensor": {
+      "heating": {
+        "name": "Uppvärmning"
+      },
+      "circulation_pump": {
+        "name": "Cirkulationspump"
+      },
+      "filter_cycle_1": {
+        "name": "Filtercykel 1"
+      },
+      "filter_cycle_2": {
+        "name": "Filtercykel 2"
+      },
+      "priming": {
+        "name": "Priming"
+      },
+      "hold": {
+        "name": "Håll"
+      }
+    },
+    "fan": {
+      "pump_1": {
+        "name": "Pump 1"
+      },
+      "pump_2": {
+        "name": "Pump 2"
+      },
+      "pump_3": {
+        "name": "Pump 3"
+      },
+      "pump_4": {
+        "name": "Pump 4"
+      },
+      "pump_5": {
+        "name": "Pump 5"
+      },
+      "pump_6": {
+        "name": "Pump 6"
+      },
+      "blower": {
+        "name": "Fläkt"
+      }
+    },
+    "light": {
+      "light_1": {
+        "name": "Ljus 1"
+      },
+      "light_2": {
+        "name": "Ljus 2"
+      }
+    },
+    "switch": {
+      "aux_1": {
+        "name": "Extrautgång 1"
+      },
+      "aux_2": {
+        "name": "Extrautgång 2"
+      },
+      "mister": {
+        "name": "Dimspridare"
+      },
+      "filter_cycle_2_enabled": {
+        "name": "Filtercykel 2"
+      }
+    },
+    "time": {
+      "filter_cycle_1_start": {
+        "name": "Start filtercykel 1"
+      },
+      "filter_cycle_2_start": {
+        "name": "Start filtercykel 2"
+      }
+    },
+    "number": {
+      "filter_cycle_1_duration": {
+        "name": "Varaktighet filtercykel 1"
+      },
+      "filter_cycle_2_duration": {
+        "name": "Varaktighet filtercykel 2"
+      }
+    },
+    "event": {
+      "reminder": {
+        "name": "Påminnelse",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "filter": "Rengör filtret",
+              "sanitizer": "Kontrollera desinfektionsmedlet",
+              "ph": "Kontrollera pH"
+            }
+          }
+        }
+      }
+    }
+  }
+}

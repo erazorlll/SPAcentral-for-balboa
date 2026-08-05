@@ -1,0 +1,235 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Как подключена спа?",
+        "data": {
+          "connection": "Подключение"
+        },
+        "data_description": {
+          "connection": "Выберите оборудование, которое находится между Home Assistant и спа."
+        }
+      },
+      "gateway": {
+        "title": "Последовательный шлюз в сети",
+        "description": "Адаптер, например Elfin EW11, ser2net или последовательный сервер ESPHome, который выводит подключение RS-485 спа в сеть. Должен работать в режиме TCP-сервера на скорости 115200 бод, 8 бит данных, без чётности, 1 стоп-бит.",
+        "data": {
+          "host": "IP-адрес",
+          "port": "Порт"
+        }
+      },
+      "wifi_module": {
+        "title": "Wi-Fi-модуль Balboa",
+        "description": "Оригинальный Wi-Fi-модуль Balboa (bwa, модель 50350).",
+        "data": {
+          "host": "IP-адрес",
+          "port": "Порт"
+        }
+      },
+      "serial": {
+        "title": "Последовательный адаптер на этом компьютере",
+        "description": "USB- или GPIO-адаптер RS-485, подключённый напрямую к спа. Предпочтителен путь в /dev/serial/by-id — он сохраняется после перезагрузки.",
+        "data": {
+          "device_path": "Устройство"
+        }
+      },
+      "discovery_confirm": {
+        "title": "Обнаружена спа Balboa",
+        "description": "Wi-Fi-модуль Balboa ответил по адресу {host}. Добавить?"
+      },
+      "reconfigure": {
+        "title": "Изменить подключение",
+        "description": "Указать для этой спа другой адрес. Сущности и история сохраняются без изменений.",
+        "data": {
+          "host": "IP-адрес",
+          "port": "Порт",
+          "device_path": "Устройство"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Нет соединения с этим адресом. Проверьте IP-адрес и порт; на EW11 убедитесь, что включён режим TCP-сервера.",
+      "no_data": "Соединение установлено, но спа ничего не передаёт. Проверьте последовательные настройки шлюза (115200, 8N1) и не перепутаны ли провода RS-485 A и B.",
+      "unknown": "Непредвиденная ошибка. Подробности в журнале."
+    },
+    "abort": {
+      "already_configured": "Эта спа уже настроена.",
+      "reconfigure_successful": "Подключение обновлено."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Параметры",
+        "data": {
+          "sync_time": "Синхронизировать часы спа"
+        },
+        "data_description": {
+          "sync_time": "Устанавливает часы спа по Home Assistant раз в час."
+        }
+      }
+    }
+  },
+  "selector": {
+    "connection": {
+      "options": {
+        "gateway": "Последовательный шлюз в сети (EW11, ser2net, ESPHome)",
+        "wifi_module": "Wi-Fi-модуль Balboa (bwa 50350)",
+        "serial": "Последовательный адаптер на этом компьютере"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "water_temperature": {
+        "name": "Температура воды"
+      },
+      "target_temperature": {
+        "name": "Целевая температура"
+      },
+      "heat_mode": {
+        "name": "Режим нагрева",
+        "state": {
+          "ready": "Готово",
+          "rest": "Отдых",
+          "ready_in_rest": "Готово в режиме отдыха"
+        }
+      },
+      "temperature_range": {
+        "name": "Диапазон температуры",
+        "state": {
+          "low": "Низкий",
+          "high": "Высокий"
+        }
+      },
+      "notification": {
+        "name": "Напоминание",
+        "state": {
+          "none": "Нет",
+          "filter": "Очистить фильтр",
+          "sanitizer": "Проверить дезинфицирующее средство",
+          "ph": "Проверить pH"
+        }
+      },
+      "last_fault": {
+        "name": "Последняя неисправность",
+        "state": {
+          "clock_failed": "Сбой часов",
+          "gfci_test_failed": "Ошибка проверки УЗО",
+          "heater_dry": "Нагреватель без воды",
+          "heater_may_be_dry": "Нагреватель, возможно, без воды",
+          "heater_too_hot": "Нагреватель перегрет",
+          "hot_fault": "Перегрев",
+          "low_water_flow": "Слишком низкий поток воды",
+          "priming_mode": "Заливка",
+          "program_memory_failure": "Ошибка памяти программы",
+          "pump_may_be_stuck": "Насос, возможно, застрял во включённом состоянии",
+          "sensor_a_fault": "Ошибка датчика A",
+          "sensor_b_fault": "Ошибка датчика B",
+          "sensors_out_of_sync": "Датчики рассинхронизированы",
+          "sensors_out_of_sync_service": "Датчики рассинхронизированы, требуется обслуживание",
+          "settings_reset": "Настройки сброшены",
+          "standby_mode": "Ожидание",
+          "water_flow_failed": "Сбой потока воды",
+          "water_too_hot": "Вода слишком горячая",
+          "unknown": "Неизвестный код"
+        }
+      }
+    },
+    "binary_sensor": {
+      "heating": {
+        "name": "Нагрев"
+      },
+      "circulation_pump": {
+        "name": "Циркуляционный насос"
+      },
+      "filter_cycle_1": {
+        "name": "Цикл фильтрации 1"
+      },
+      "filter_cycle_2": {
+        "name": "Цикл фильтрации 2"
+      },
+      "priming": {
+        "name": "Заливка"
+      },
+      "hold": {
+        "name": "Удержание"
+      }
+    },
+    "fan": {
+      "pump_1": {
+        "name": "Насос 1"
+      },
+      "pump_2": {
+        "name": "Насос 2"
+      },
+      "pump_3": {
+        "name": "Насос 3"
+      },
+      "pump_4": {
+        "name": "Насос 4"
+      },
+      "pump_5": {
+        "name": "Насос 5"
+      },
+      "pump_6": {
+        "name": "Насос 6"
+      },
+      "blower": {
+        "name": "Компрессор"
+      }
+    },
+    "light": {
+      "light_1": {
+        "name": "Свет 1"
+      },
+      "light_2": {
+        "name": "Свет 2"
+      }
+    },
+    "switch": {
+      "aux_1": {
+        "name": "Доп. выход 1"
+      },
+      "aux_2": {
+        "name": "Доп. выход 2"
+      },
+      "mister": {
+        "name": "Разбрызгиватель"
+      },
+      "filter_cycle_2_enabled": {
+        "name": "Цикл фильтрации 2"
+      }
+    },
+    "time": {
+      "filter_cycle_1_start": {
+        "name": "Начало цикла фильтрации 1"
+      },
+      "filter_cycle_2_start": {
+        "name": "Начало цикла фильтрации 2"
+      }
+    },
+    "number": {
+      "filter_cycle_1_duration": {
+        "name": "Длительность цикла фильтрации 1"
+      },
+      "filter_cycle_2_duration": {
+        "name": "Длительность цикла фильтрации 2"
+      }
+    },
+    "event": {
+      "reminder": {
+        "name": "Напоминание",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "filter": "Очистить фильтр",
+              "sanitizer": "Проверить дезинфицирующее средство",
+              "ph": "Проверить pH"
+            }
+          }
+        }
+      }
+    }
+  }
+}

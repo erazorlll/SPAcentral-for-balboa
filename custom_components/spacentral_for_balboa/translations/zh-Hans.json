@@ -1,0 +1,235 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "你的按摩浴缸是如何连接的?",
+        "data": {
+          "connection": "连接方式"
+        },
+        "data_description": {
+          "connection": "选择位于 Home Assistant 和按摩浴缸之间的硬件。"
+        }
+      },
+      "gateway": {
+        "title": "网络上的串口网关",
+        "description": "例如 Elfin EW11、ser2net 或 ESPHome 串口服务器等适配器，可将按摩浴缸的 RS-485 连接接入网络。必须以 TCP 服务器模式运行，波特率 115200，8 个数据位，无校验位，1 个停止位。",
+        "data": {
+          "host": "IP 地址",
+          "port": "端口"
+        }
+      },
+      "wifi_module": {
+        "title": "Balboa Wi-Fi 模块",
+        "description": "Balboa 原装 Wi-Fi 模块（bwa，型号 50350）。",
+        "data": {
+          "host": "IP 地址",
+          "port": "端口"
+        }
+      },
+      "serial": {
+        "title": "本机上的串口适配器",
+        "description": "直接接到按摩浴缸的 USB 或 GPIO RS-485 适配器。建议使用 /dev/serial/by-id 下的路径，可在重启后保持不变。",
+        "data": {
+          "device_path": "设备"
+        }
+      },
+      "discovery_confirm": {
+        "title": "发现 Balboa 按摩浴缸",
+        "description": "一个 Balboa Wi-Fi 模块在 {host} 处响应。是否添加？"
+      },
+      "reconfigure": {
+        "title": "更改连接",
+        "description": "将此按摩浴缸指向另一个地址。它的实体和历史记录保持不变。",
+        "data": {
+          "host": "IP 地址",
+          "port": "端口",
+          "device_path": "设备"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "无法连接到该地址。请检查 IP 和端口；使用 EW11 时请确认已开启 TCP 服务器模式。",
+      "no_data": "已连接，但按摩浴缸没有发送任何数据。请检查网关的串口设置（115200，8N1），以及 RS-485 的 A、B 线是否接反。",
+      "unknown": "发生意外错误，详情请查看日志。"
+    },
+    "abort": {
+      "already_configured": "该按摩浴缸已经设置过。",
+      "reconfigure_successful": "连接已更新。"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "选项",
+        "data": {
+          "sync_time": "保持按摩浴缸时钟同步"
+        },
+        "data_description": {
+          "sync_time": "每小时根据 Home Assistant 校准一次按摩浴缸的时钟。"
+        }
+      }
+    }
+  },
+  "selector": {
+    "connection": {
+      "options": {
+        "gateway": "网络上的串口网关（EW11、ser2net、ESPHome）",
+        "wifi_module": "Balboa Wi-Fi 模块（bwa 50350）",
+        "serial": "本机上的串口适配器"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "water_temperature": {
+        "name": "水温"
+      },
+      "target_temperature": {
+        "name": "目标温度"
+      },
+      "heat_mode": {
+        "name": "加热模式",
+        "state": {
+          "ready": "就绪",
+          "rest": "休眠",
+          "ready_in_rest": "休眠中就绪"
+        }
+      },
+      "temperature_range": {
+        "name": "温度范围",
+        "state": {
+          "low": "低",
+          "high": "高"
+        }
+      },
+      "notification": {
+        "name": "提醒",
+        "state": {
+          "none": "无",
+          "filter": "清洁过滤器",
+          "sanitizer": "检查消毒剂",
+          "ph": "检查 pH 值"
+        }
+      },
+      "last_fault": {
+        "name": "最近故障",
+        "state": {
+          "clock_failed": "时钟故障",
+          "gfci_test_failed": "漏电保护测试失败",
+          "heater_dry": "加热器缺水",
+          "heater_may_be_dry": "加热器可能缺水",
+          "heater_too_hot": "加热器过热",
+          "hot_fault": "过热",
+          "low_water_flow": "水流过低",
+          "priming_mode": "注水中",
+          "program_memory_failure": "程序内存故障",
+          "pump_may_be_stuck": "水泵可能卡在开启状态",
+          "sensor_a_fault": "传感器 A 故障",
+          "sensor_b_fault": "传感器 B 故障",
+          "sensors_out_of_sync": "传感器不同步",
+          "sensors_out_of_sync_service": "传感器不同步，需要维修",
+          "settings_reset": "设置已重置",
+          "standby_mode": "待机",
+          "water_flow_failed": "水流中断",
+          "water_too_hot": "水温过高",
+          "unknown": "未知代码"
+        }
+      }
+    },
+    "binary_sensor": {
+      "heating": {
+        "name": "加热中"
+      },
+      "circulation_pump": {
+        "name": "循环泵"
+      },
+      "filter_cycle_1": {
+        "name": "过滤循环 1"
+      },
+      "filter_cycle_2": {
+        "name": "过滤循环 2"
+      },
+      "priming": {
+        "name": "注水中"
+      },
+      "hold": {
+        "name": "保持"
+      }
+    },
+    "fan": {
+      "pump_1": {
+        "name": "水泵 1"
+      },
+      "pump_2": {
+        "name": "水泵 2"
+      },
+      "pump_3": {
+        "name": "水泵 3"
+      },
+      "pump_4": {
+        "name": "水泵 4"
+      },
+      "pump_5": {
+        "name": "水泵 5"
+      },
+      "pump_6": {
+        "name": "水泵 6"
+      },
+      "blower": {
+        "name": "鼓风机"
+      }
+    },
+    "light": {
+      "light_1": {
+        "name": "灯光 1"
+      },
+      "light_2": {
+        "name": "灯光 2"
+      }
+    },
+    "switch": {
+      "aux_1": {
+        "name": "辅助输出 1"
+      },
+      "aux_2": {
+        "name": "辅助输出 2"
+      },
+      "mister": {
+        "name": "喷雾器"
+      },
+      "filter_cycle_2_enabled": {
+        "name": "过滤循环 2"
+      }
+    },
+    "time": {
+      "filter_cycle_1_start": {
+        "name": "过滤循环 1 开始时间"
+      },
+      "filter_cycle_2_start": {
+        "name": "过滤循环 2 开始时间"
+      }
+    },
+    "number": {
+      "filter_cycle_1_duration": {
+        "name": "过滤循环 1 时长"
+      },
+      "filter_cycle_2_duration": {
+        "name": "过滤循环 2 时长"
+      }
+    },
+    "event": {
+      "reminder": {
+        "name": "提醒",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "filter": "清洁过滤器",
+              "sanitizer": "检查消毒剂",
+              "ph": "检查 pH 值"
+            }
+          }
+        }
+      }
+    }
+  }
+}

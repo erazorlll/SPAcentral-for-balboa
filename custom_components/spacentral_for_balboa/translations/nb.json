@@ -1,0 +1,235 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Hvordan er spaen din tilkoblet?",
+        "data": {
+          "connection": "Tilkobling"
+        },
+        "data_description": {
+          "connection": "Velg maskinvaren som sitter mellom Home Assistant og spaen."
+        }
+      },
+      "gateway": {
+        "title": "Seriell gateway i nettverket",
+        "description": "En adapter som Elfin EW11, ser2net eller en ESPHome seriell server som bringer spaens RS-485-tilkobling ut på nettverket. Må kjøre i TCP-servermodus på 115200 baud, 8 databiter, ingen paritet, 1 stoppbit.",
+        "data": {
+          "host": "IP-adresse",
+          "port": "Port"
+        }
+      },
+      "wifi_module": {
+        "title": "Balboa Wi-Fi-modul",
+        "description": "Balboas originale Wi-Fi-modul (bwa, modell 50350).",
+        "data": {
+          "host": "IP-adresse",
+          "port": "Port"
+        }
+      },
+      "serial": {
+        "title": "Seriell adapter på denne maskinen",
+        "description": "En USB- eller GPIO RS-485-adapter koblet direkte til spaen. Foretrekk en sti under /dev/serial/by-id, som overlever en omstart.",
+        "data": {
+          "device_path": "Enhet"
+        }
+      },
+      "discovery_confirm": {
+        "title": "Balboa-spa funnet",
+        "description": "En Balboa Wi-Fi-modul svarte på {host}. Legge til den?"
+      },
+      "reconfigure": {
+        "title": "Endre tilkoblingen",
+        "description": "Pek denne spaen mot en annen adresse. Entiteter og historikk beholdes som de er.",
+        "data": {
+          "host": "IP-adresse",
+          "port": "Port",
+          "device_path": "Enhet"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Ingen forbindelse til den adressen. Sjekk IP og port; på en EW11, kontroller at TCP-servermodus er slått på.",
+      "no_data": "Tilkoblet, men spaen sender ingenting. Sjekk gatewayens serielle innstillinger (115200, 8N1) og om RS-485-ledningene A og B er byttet om.",
+      "unknown": "Uventet feil. Loggen har detaljene."
+    },
+    "abort": {
+      "already_configured": "Denne spaen er allerede satt opp.",
+      "reconfigure_successful": "Tilkobling oppdatert."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Alternativer",
+        "data": {
+          "sync_time": "Hold spaens klokke synkronisert"
+        },
+        "data_description": {
+          "sync_time": "Stiller spaens klokke etter Home Assistant én gang i timen."
+        }
+      }
+    }
+  },
+  "selector": {
+    "connection": {
+      "options": {
+        "gateway": "Seriell gateway i nettverket (EW11, ser2net, ESPHome)",
+        "wifi_module": "Balboa Wi-Fi-modul (bwa 50350)",
+        "serial": "Seriell adapter på denne maskinen"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "water_temperature": {
+        "name": "Vanntemperatur"
+      },
+      "target_temperature": {
+        "name": "Måltemperatur"
+      },
+      "heat_mode": {
+        "name": "Oppvarmingsmodus",
+        "state": {
+          "ready": "Klar",
+          "rest": "Hvile",
+          "ready_in_rest": "Klar i hvile"
+        }
+      },
+      "temperature_range": {
+        "name": "Temperaturområde",
+        "state": {
+          "low": "Lavt",
+          "high": "Høyt"
+        }
+      },
+      "notification": {
+        "name": "Påminnelse",
+        "state": {
+          "none": "Ingen",
+          "filter": "Rengjør filteret",
+          "sanitizer": "Sjekk desinfeksjonsmiddelet",
+          "ph": "Sjekk pH"
+        }
+      },
+      "last_fault": {
+        "name": "Siste feil",
+        "state": {
+          "clock_failed": "Klokkefeil",
+          "gfci_test_failed": "Test av jordfeilbryter mislyktes",
+          "heater_dry": "Varmeren tørr",
+          "heater_may_be_dry": "Varmeren kan være tørr",
+          "heater_too_hot": "Varmeren for varm",
+          "hot_fault": "Overoppheting",
+          "low_water_flow": "For lav vanngjennomstrømning",
+          "priming_mode": "Priming",
+          "program_memory_failure": "Feil i programminnet",
+          "pump_may_be_stuck": "En pumpe kan sitte fast i påslått tilstand",
+          "sensor_a_fault": "Feil på sensor A",
+          "sensor_b_fault": "Feil på sensor B",
+          "sensors_out_of_sync": "Sensorene usynkroniserte",
+          "sensors_out_of_sync_service": "Sensorene usynkroniserte, service nødvendig",
+          "settings_reset": "Innstillingene tilbakestilt",
+          "standby_mode": "Standby",
+          "water_flow_failed": "Vanngjennomstrømning uteble",
+          "water_too_hot": "Vannet for varmt",
+          "unknown": "Ukjent kode"
+        }
+      }
+    },
+    "binary_sensor": {
+      "heating": {
+        "name": "Oppvarming"
+      },
+      "circulation_pump": {
+        "name": "Sirkulasjonspumpe"
+      },
+      "filter_cycle_1": {
+        "name": "Filtersyklus 1"
+      },
+      "filter_cycle_2": {
+        "name": "Filtersyklus 2"
+      },
+      "priming": {
+        "name": "Priming"
+      },
+      "hold": {
+        "name": "Hold"
+      }
+    },
+    "fan": {
+      "pump_1": {
+        "name": "Pumpe 1"
+      },
+      "pump_2": {
+        "name": "Pumpe 2"
+      },
+      "pump_3": {
+        "name": "Pumpe 3"
+      },
+      "pump_4": {
+        "name": "Pumpe 4"
+      },
+      "pump_5": {
+        "name": "Pumpe 5"
+      },
+      "pump_6": {
+        "name": "Pumpe 6"
+      },
+      "blower": {
+        "name": "Vifte"
+      }
+    },
+    "light": {
+      "light_1": {
+        "name": "Lys 1"
+      },
+      "light_2": {
+        "name": "Lys 2"
+      }
+    },
+    "switch": {
+      "aux_1": {
+        "name": "Ekstrautgang 1"
+      },
+      "aux_2": {
+        "name": "Ekstrautgang 2"
+      },
+      "mister": {
+        "name": "Tåkespreder"
+      },
+      "filter_cycle_2_enabled": {
+        "name": "Filtersyklus 2"
+      }
+    },
+    "time": {
+      "filter_cycle_1_start": {
+        "name": "Start filtersyklus 1"
+      },
+      "filter_cycle_2_start": {
+        "name": "Start filtersyklus 2"
+      }
+    },
+    "number": {
+      "filter_cycle_1_duration": {
+        "name": "Varighet filtersyklus 1"
+      },
+      "filter_cycle_2_duration": {
+        "name": "Varighet filtersyklus 2"
+      }
+    },
+    "event": {
+      "reminder": {
+        "name": "Påminnelse",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "filter": "Rengjør filteret",
+              "sanitizer": "Sjekk desinfeksjonsmiddelet",
+              "ph": "Sjekk pH"
+            }
+          }
+        }
+      }
+    }
+  }
+}
