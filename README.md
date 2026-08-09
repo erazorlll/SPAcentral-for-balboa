@@ -65,9 +65,16 @@ Only for hardware the controller actually reports — a spa with three pumps get
 | `sensor` | water and target temperature, heat mode, temperature range, reminder, last fault |
 | `binary_sensor` | heating, circulation pump, filter cycles, priming, hold |
 | `event` | maintenance reminders |
+| `button` | sync the spa clock to Home Assistant's time right now |
 
-Options: keep the spa clock in sync with Home Assistant. Diagnostics can be downloaded
-from the device page, with the address and MAC redacted.
+### Clock sync
+
+**Settings → Devices & Services → SPAcentral for Balboa Whirlpool → Configure** turns
+automatic clock sync on or off — when enabled, the spa's clock is pushed from Home
+Assistant once an hour. The **Sync time now** button works independently of that setting,
+for a one-time sync on demand, whether automatic sync is on or off.
+
+Diagnostics can be downloaded from the device page, with the address and MAC redacted.
 
 ## Why
 
@@ -107,6 +114,9 @@ such a setup may never report, or from a name the user is free to change.
 | Local serial adapter (USB / GPIO RS-485) | supported by design, not verified on hardware |
 | Balboa Wi-Fi module (bwa 50350, TCP 4257) | supported by design, not verified on hardware |
 
+For wiring and configuring the EW11 itself (as opposed to the Home Assistant side of the
+connection), see [jshank/bwalink's EW11 write-up](https://github.com/jshank/bwalink#elfin-ew11a-0).
+
 The Wi-Fi module uses the *same* transport, framing and parser as the RS-485 gateway —
 only the default port and write policy differ — so it is exercised by the same tests.
 It is nevertheless listed as unverified because nobody has run it on real hardware.
@@ -120,10 +130,13 @@ deliberately deferred until someone with that hardware can test it.
 - Setup entirely through the UI, with connection presets in plain language
 - Any number of spas side by side
 - `climate`, `fan` (pumps and blower), `light`, `switch`, `sensor`, `binary_sensor`,
-  `time` and `number` for the filter cycles, `event` for reminders
+  `time` and `number` for the filter cycles, `event` for reminders, `button` for a
+  one-time clock sync
 - Diagnostics download with the address redacted
 - Only creates entities the spa actually reports
-- Diagnostics download, English and German translations
+- Diagnostics download, translations for English, German, French, Spanish, Italian,
+  Dutch, Polish, Portuguese (Brazil), Russian, Swedish, Norwegian Bokmål and Chinese
+  (Simplified)
 - Reconnect with exponential backoff and stale-stream detection
 
 ## Credits
