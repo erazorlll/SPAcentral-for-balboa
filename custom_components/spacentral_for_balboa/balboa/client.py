@@ -71,6 +71,15 @@ TOGGLE_CONFIRM_TIMEOUT = 2.5
 TOGGLE_LIMIT = 4
 #: Spacing between the four configuration requests, so we do not flood the bus.
 REQUEST_INTERVAL = 0.2
+#: A filter-cycle write's own confirmation request (or its answer) can be lost
+#: to a bus collision like any other frame. Without a retry, a lost
+#: confirmation left `self._state.filter_cycles` stale forever -- the startup
+#: gap-filler only re-requests a *missing* (`None`) value, never a stale one,
+#: so the entity kept showing the pre-write time indefinitely. Same reasoning
+#: as `TOGGLE_CONFIRM_TIMEOUT`; a separate constant because it is a different
+#: message, not because the bus behaves differently for it.
+FILTER_CYCLES_CONFIRM_TIMEOUT = 2.5
+FILTER_CYCLES_WRITE_RETRIES = 3
 #: How often to re-read the fault log. It is 24 requests, and faults are rare,
 #: so this is deliberately lazy. Re-reading the whole log also fills in
 #: whatever the previous pass lost to a bus collision -- three of twenty-six
@@ -107,6 +116,7 @@ class SpaClient:
         self._last_frame_at: float = 0.0
         self._last_status_at: float = 0.0
         self._status_event = asyncio.Event()
+        self._filter_cycles_event = asyncio.Event()
         self._last_fault_request: float = 0.0
         self.unknown_messages = 0
 
@@ -239,10 +249,34 @@ class SpaClient:
             await asyncio.sleep(REQUEST_INTERVAL)
 
     async def set_filter_cycles(self, cycles: FilterCycles) -> None:
-        """Write both filter cycles, then ask for them back to confirm."""
-        await self._send(set_filter_cycles(cycles))
-        await asyncio.sleep(REQUEST_INTERVAL)
-        await self._send(request_control_configuration(3))
+        """Write both filter cycles, then confirm the controller actually applied them.
+
+        Retries like `set_pump`/`set_blower` retry a toggle: the write or its
+        confirmation request (or the controller's answer) can be lost to a bus
+        collision, and a lost confirmation used to leave `self._state.
+        filter_cycles` stale forever with nothing to notice or retry it (see
+        `FILTER_CYCLES_CONFIRM_TIMEOUT`). Symptom on hardware: changing a
+        filter cycle's start time back to whatever Home Assistant still
+        displayed appeared to do nothing, because Home Assistant had never
+        seen the value move away from it in the first place.
+        """
+        for _ in range(FILTER_CYCLES_WRITE_RETRIES):
+            self._filter_cycles_event.clear()
+            await self._send(set_filter_cycles(cycles))
+            await asyncio.sleep(REQUEST_INTERVAL)
+            await self._send(request_control_configuration(3))
+            with contextlib.suppress(TimeoutError):
+                await asyncio.wait_for(
+                    self._filter_cycles_event.wait(), FILTER_CYCLES_CONFIRM_TIMEOUT
+                )
+            current = self._state.filter_cycles
+            if current is not None and _filter_cycles_confirmed(cycles, current):
+                return
+        _LOGGER.warning(
+            "%s: filter cycle write not confirmed after %d attempts",
+            self.description,
+            FILTER_CYCLES_WRITE_RETRIES,
+        )
 
     async def toggle_item(self, item: ToggleItem) -> None:
         await self._send(toggle(item))
@@ -485,6 +519,7 @@ class SpaClient:
             return True
         if isinstance(message, FilterCycles):
             self._state = self._state.with_filter_cycles(message)
+            self._filter_cycles_event.set()
             return True
         if isinstance(message, FaultLogEntry):
             # The whole log is re-read periodically, so most answers repeat what
@@ -589,4 +624,29 @@ def _significant_change(old: StatusUpdate, new: StatusUpdate) -> bool:
         or old.hold != new.hold
         or old.priming != new.priming
         or old.twenty_four_hour_time != new.twenty_four_hour_time
+    )
+
+
+def _filter_cycles_confirmed(written: FilterCycles, received: FilterCycles) -> bool:
+    """Whether `received` carries the same cycle values as `written`.
+
+    Never compare `FilterCycles` with `==`: it is a plain dataclass, so that
+    also compares the inherited `channel`/`raw` fields -- the literal wire
+    bytes of whichever frame each side came from. `written` is normally built
+    with `FilterCycles.with_start`/`with_duration` off an *older* confirmed
+    frame, so its `raw` is stale by construction even once the controller has
+    genuinely applied the new values; `==` would then never confirm a write,
+    no matter how many times it is retried. Same reasoning as
+    `_significant_change` just above.
+    """
+    return (
+        written.cycle_1_start_hour == received.cycle_1_start_hour
+        and written.cycle_1_start_minute == received.cycle_1_start_minute
+        and written.cycle_1_duration_hours == received.cycle_1_duration_hours
+        and written.cycle_1_duration_minutes == received.cycle_1_duration_minutes
+        and written.cycle_2_enabled == received.cycle_2_enabled
+        and written.cycle_2_start_hour == received.cycle_2_start_hour
+        and written.cycle_2_start_minute == received.cycle_2_start_minute
+        and written.cycle_2_duration_hours == received.cycle_2_duration_hours
+        and written.cycle_2_duration_minutes == received.cycle_2_duration_minutes
     )

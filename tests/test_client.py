@@ -16,6 +16,7 @@ from balboa.framing import FrameReader
 from balboa.messages import (
     ControlConfiguration,
     ControlConfiguration2,
+    FilterCycles,
     StatusUpdate,
     parse_frame,
 )
@@ -334,6 +335,38 @@ async def test_availability_follows_the_frame_clock(
             lambda: real_monotonic() + STALE_AFTER + 1,
         )
         assert not client.available
+    finally:
+        await client.disconnect()
+
+
+async def test_set_filter_cycles_writes_and_confirms(
+    handshake_frames: list[bytes],
+) -> None:
+    """The write must land in state once the controller echoes it back --
+
+    that echo is what lets a subsequent read (and the `time` entity's
+    displayed value) reflect the change, rather than the pre-write value.
+    """
+    client, transport = await _connected_client(handshake_frames)
+    try:
+        transport.push(_frames_of("ew11_probe", (FilterCycles,), 1)[0])
+        await asyncio.sleep(0.05)
+        current = client.state.filter_cycles
+        assert current is not None
+        new_cycles = current.with_start(2, 20, 0)
+
+        async def _echo_the_write() -> None:
+            while True:
+                writes = [f for f in transport.written if f[3:5].hex() == "bf23"]
+                if writes:
+                    transport.push(writes[-1])
+                    return
+                await asyncio.sleep(0.002)
+
+        await asyncio.gather(client.set_filter_cycles(new_cycles), _echo_the_write())
+
+        assert client.state.filter_cycles is not None
+        assert client.state.filter_cycles.start(2) == (20, 0)
     finally:
         await client.disconnect()
 

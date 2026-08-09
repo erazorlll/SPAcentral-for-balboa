@@ -85,6 +85,16 @@ class ReplayTransport(Transport):
 
     async def write(self, data: bytes) -> None:
         self.written.append(data)
+        if data[3:5].hex() == "bf23":
+            # A real controller answers a filter-cycle write with the same
+            # message type it was sent (balboa.messages.set_filter_cycles's
+            # own docstring), so the write frame itself parses back as a
+            # valid confirmation. Echo it immediately: without this, every
+            # filter-cycle change would sit through the client's full
+            # confirmation-retry timeout (client.FILTER_CYCLES_CONFIRM_TIMEOUT
+            # x FILTER_CYCLES_WRITE_RETRIES) because this fake transport never
+            # answers anything on its own.
+            self._queue.put_nowait(data)
 
     async def close(self) -> None:
         self._connected = False
@@ -282,6 +292,42 @@ async def test_changing_a_duration_keeps_the_start(hass: HomeAssistant, spa) -> 
     payload = sent[5:-2]
     assert payload[6] == 1 and payload[7] == 30  # 90 minutes
     assert payload[4] == 0x8E  # start hour and enable flag intact
+
+
+async def test_setting_the_filter_cycle_2_start_time_updates_the_entity(
+    hass: HomeAssistant, spa
+) -> None:
+    """Reported symptom: moving filter cycle 2's start time to 20:00 worked,
+
+    but moving it back to 14:00 afterwards appeared to do nothing. Root
+    cause was a lost confirmation leaving the cached value (and so the
+    entity's displayed state) stuck at the pre-write time forever, which
+    made a later change back to that same displayed value look like no
+    change at all. This drives the entity both ways and checks the
+    displayed state actually follows each write, not just the frame sent.
+    """
+    _, transport = spa
+    assert hass.states.get("time.whirlpool_filter_cycle_2_start").state == "14:00:00"
+
+    await hass.services.async_call(
+        Platform.TIME,
+        "set_value",
+        {ATTR_ENTITY_ID: "time.whirlpool_filter_cycle_2_start", "time": "20:00:00"},
+        blocking=True,
+    )
+    assert hass.states.get("time.whirlpool_filter_cycle_2_start").state == "20:00:00"
+    sent = [f for f in transport.written if f[3:5].hex() == "bf23"]
+    assert sent[-1][5:-2][4] == 0x94  # enable bit + hour 20
+
+    await hass.services.async_call(
+        Platform.TIME,
+        "set_value",
+        {ATTR_ENTITY_ID: "time.whirlpool_filter_cycle_2_start", "time": "14:00:00"},
+        blocking=True,
+    )
+    assert hass.states.get("time.whirlpool_filter_cycle_2_start").state == "14:00:00"
+    sent = [f for f in transport.written if f[3:5].hex() == "bf23"]
+    assert sent[-1][5:-2][4] == 0x8E  # enable bit + hour 14
 
 
 async def test_disabling_the_second_cycle_keeps_its_times(

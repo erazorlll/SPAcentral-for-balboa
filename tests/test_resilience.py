@@ -219,6 +219,54 @@ async def test_missing_configuration_is_requested_again(
         await client.disconnect()
 
 
+async def test_set_filter_cycles_retries_after_a_lost_confirmation(
+    handshake_frames: list[bytes], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Observed on hardware: setting a filter cycle's start time back to
+
+    whatever Home Assistant still displayed appeared to do nothing. Root
+    cause -- the confirmation request (or its answer) is a frame like any
+    other and can be lost to a bus collision; with no retry, the cached
+    value stayed stale forever, so Home Assistant never saw it move away
+    from the pre-write time and the next edit back to it looked like no
+    change at all. This reproduces exactly one lost confirmation and checks
+    the second attempt recovers it.
+    """
+    monkeypatch.setattr(client_module, "FILTER_CYCLES_CONFIRM_TIMEOUT", 0.02)
+
+    transport = FakeTransport(handshake_frames)
+    client = SpaClient(transport)
+    assert await client.connect()
+    try:
+        transport.push(_frames_of("ew11_probe", (FilterCycles,), 1)[0])
+        await asyncio.sleep(0.05)
+        current = client.state.filter_cycles
+        assert current is not None
+        new_cycles = current.with_start(2, 20, 0)
+
+        echoes_sent = 0
+
+        async def _ignore_the_first_attempt_then_echo() -> None:
+            nonlocal echoes_sent
+            while True:
+                await asyncio.sleep(0.002)
+                writes = [f for f in transport.written if f[3:5].hex() == "bf23"]
+                if len(writes) >= 2:  # the retry, not the first (lost) attempt
+                    echoes_sent += 1
+                    transport.push(writes[-1])
+                    return
+
+        await asyncio.gather(
+            client.set_filter_cycles(new_cycles), _ignore_the_first_attempt_then_echo()
+        )
+
+        assert echoes_sent == 1, "the retry must have happened exactly once"
+        assert client.state.filter_cycles is not None
+        assert client.state.filter_cycles.start(2) == (20, 0)
+    finally:
+        await client.disconnect()
+
+
 async def test_gap_filling_stops_once_complete(
     monkeypatch: pytest.MonkeyPatch, handshake_frames: list[bytes]
 ) -> None:
