@@ -75,6 +75,17 @@ async def _options_updated(hass: HomeAssistant, entry: SpaConfigEntry) -> None:
     await hass.config_entries.async_reload(entry.entry_id)
 
 
+async def sync_clock(client: SpaClient) -> None:
+    """Push Home Assistant's current time to the spa, if it doesn't already match."""
+    now = dt_util.as_local(dt_util.utcnow())
+    status = client.state.status
+    if status is None:
+        return
+    if (status.hour, status.minute) != (now.hour, now.minute):
+        _LOGGER.debug("%s: syncing clock", client.description)
+        await client.set_clock(now.hour, now.minute)
+
+
 def _setup_time_sync(hass: HomeAssistant, entry: SpaConfigEntry) -> None:
     """Keep the spa clock in step with Home Assistant, if asked to."""
     if not entry.options.get(OPT_SYNC_TIME, DEFAULT_SYNC_TIME):
@@ -83,12 +94,6 @@ def _setup_time_sync(hass: HomeAssistant, entry: SpaConfigEntry) -> None:
     client = entry.runtime_data
 
     async def sync(_now: datetime) -> None:
-        now = dt_util.as_local(dt_util.utcnow())
-        status = client.state.status
-        if status is None:
-            return
-        if (status.hour, status.minute) != (now.hour, now.minute):
-            _LOGGER.debug("%s: syncing clock", client.description)
-            await client.set_clock(now.hour, now.minute)
+        await sync_clock(client)
 
     entry.async_on_unload(async_track_time_interval(hass, sync, SYNC_TIME_INTERVAL))

@@ -80,6 +80,11 @@
     }
   },
   "entity": {
+    "button": {
+      "sync_clock": {
+        "name": "Sync time now"
+      }
+    },
     "sensor": {
       "water_temperature": {
         "name": "Water temperature"
