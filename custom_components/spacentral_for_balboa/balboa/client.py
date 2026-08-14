@@ -170,14 +170,31 @@ class SpaClient:
         try:
             await asyncio.wait_for(self._configured.wait(), CONFIGURATION_TIMEOUT)
         except TimeoutError:
+            if self._state.status is None:
+                _LOGGER.warning(
+                    "%s: no configuration within %.0fs (status=%s hardware=%s)",
+                    self.description,
+                    CONFIGURATION_TIMEOUT,
+                    self._state.status is not None,
+                    self._state.hardware is not None,
+                )
+                return False
+            # Status is flowing but the hardware description never answered,
+            # even after _fill_configuration_gaps' retries within this same
+            # window -- some controllers (observed: Balboa "SIBP2P"/Colossus
+            # boards) never reply to that request at all, not just slowly.
+            # Proceeding without it is strictly better than refusing to load:
+            # SpaState already answers every hardware-derived accessor safely
+            # when `hardware` is None (see state.py), so entities that need it
+            # (pumps/lights/aux/blower) simply won't be created this run,
+            # while status-derived entities (climate, sensors) work normally.
             _LOGGER.warning(
-                "%s: no configuration within %.0fs (status=%s hardware=%s)",
+                "%s: proceeding without hardware configuration after %.0fs -- "
+                "pump/light/aux/blower entities will be unavailable until it "
+                "arrives on a future reconnect",
                 self.description,
                 CONFIGURATION_TIMEOUT,
-                self._state.status is not None,
-                self._state.hardware is not None,
             )
-            return False
 
         self._start_fault_sweep()
         return True

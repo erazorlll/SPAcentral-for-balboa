@@ -123,10 +123,35 @@ async def test_connect_requests_configuration(handshake_frames: list[bytes]) -> 
         await client.disconnect()
 
 
-async def test_connect_fails_without_hardware_configuration() -> None:
-    """A status alone is not enough -- we would not know what entities to make."""
+async def test_connect_proceeds_on_status_alone_once_hardware_times_out() -> None:
+    """Some controllers (observed: Balboa SIBP2P/Colossus) never answer the
+    hardware-configuration request at all. Refusing to load the integration
+    entirely would be worse than loading it with fewer entities: status-derived
+    entities (climate, sensors) still work, and SpaState already answers every
+    hardware-derived accessor safely when `hardware` is None.
+    """
     frames = _frames_of("ew11_idle", (StatusUpdate,), 1)
     transport = FakeTransport(frames)
+    client = SpaClient(transport)
+    from balboa import client as client_module
+
+    original = client_module.CONFIGURATION_TIMEOUT
+    client_module.CONFIGURATION_TIMEOUT = 0.3
+    try:
+        assert await client.connect()
+        assert client.state.status is not None
+        assert client.state.hardware is None
+        assert not client.state.ready
+    finally:
+        client_module.CONFIGURATION_TIMEOUT = original
+        await client.disconnect()
+
+
+async def test_connect_fails_with_no_data_at_all() -> None:
+    """Genuinely nothing on the bus (no status, no hardware) still fails --
+    that is a real connection problem, not just a missing optional message.
+    """
+    transport = FakeTransport([])
     client = SpaClient(transport)
     from balboa import client as client_module
 

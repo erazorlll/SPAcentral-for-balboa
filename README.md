@@ -113,6 +113,7 @@ such a setup may never report, or from a name the user is free to change.
 | RS-485 gateway over TCP (Elfin EW11, ser2net, ESPHome serial server) | **verified on hardware, reading and writing** — this is the setup the project is developed against |
 | Local serial adapter (USB / GPIO RS-485) | supported by design, not verified on hardware |
 | Balboa Wi-Fi module (bwa 50350, TCP 4257) | supported by design, not verified on hardware |
+| Balboa "SIBP2P" boards (Colossus kit line) | message protocol confirmed byte-compatible; setup no longer fails if the hardware-configuration message goes unanswered (pump/light/aux/blower entities won't be created until it arrives) — awaiting field confirmation |
 
 For wiring and configuring the EW11 itself (as opposed to the Home Assistant side of the
 connection), see [jshank/bwalink's EW11 write-up](https://github.com/jshank/bwalink#elfin-ew11a-0).
