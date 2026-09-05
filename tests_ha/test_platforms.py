@@ -27,6 +27,7 @@ from homeassistant.const import (
     Platform,
 )
 from homeassistant.core import HomeAssistant
+from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -46,6 +47,12 @@ from custom_components.spacentral_for_balboa.const import (
     CONNECTION_GATEWAY,
     DOMAIN,
     IDENTITY_ENTRY_ID,
+    OPT_AUX_COUNT,
+    OPT_HAS_BLOWER,
+    OPT_HAS_CIRCULATION_PUMP,
+    OPT_HAS_MISTER,
+    OPT_LIGHT_COUNT,
+    OPT_PUMP_COUNT,
 )
 
 FIXTURES = Path(__file__).resolve().parent.parent / "fixtures"
@@ -449,6 +456,175 @@ async def test_circulation_pump_exists_without_the_hardware_frame(
         state = hass.states.get("binary_sensor.pool_circulation_pump")
         assert state is not None, "entity must exist even without the hardware frame"
         assert state.state == STATE_ON
+    finally:
+        await hass.config_entries.async_unload(entry.entry_id)
+        await hass.async_block_till_done()
+
+
+async def test_manual_hardware_options_create_entities_without_the_frame(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The SIBP2P fallback: counts entered through the config/options flow
+    stand in for a hardware descriptor the controller will never send."""
+    from custom_components.spacentral_for_balboa.balboa import client as client_module
+
+    monkeypatch.setattr(client_module, "CONFIGURATION_TIMEOUT", 0.1)
+
+    frames = _frames("ew11_probe", ControlConfiguration) + _frames(
+        "ew11_idle", StatusUpdate
+    )  # deliberately no ControlConfiguration2
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Pool",
+        data={
+            CONF_CONNECTION: CONNECTION_GATEWAY,
+            CONF_HOST: "192.168.0.23",
+            CONF_PORT: 8899,
+            CONF_IDENTITY_SOURCE: IDENTITY_ENTRY_ID,
+        },
+        options={
+            OPT_PUMP_COUNT: 2,
+            OPT_LIGHT_COUNT: 1,
+            OPT_HAS_BLOWER: True,
+            OPT_HAS_CIRCULATION_PUMP: True,
+        },
+    )
+    entry.add_to_hass(hass)
+
+    with patch(
+        "custom_components.spacentral_for_balboa.build_transport",
+        return_value=ReplayTransport(frames),
+    ):
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+    try:
+        entities = er.async_get(hass).entities
+        ids = {
+            e.entity_id for e in entities.values() if e.config_entry_id == entry.entry_id
+        }
+        assert "fan.pool_pump_1" in ids
+        assert "fan.pool_pump_2" in ids
+        assert "fan.pool_blower" in ids
+        assert "light.pool_light_1" in ids
+        assert hass.states.get("binary_sensor.pool_circulation_pump") is not None
+
+        # entered as 2 pumps, 1 light -- nothing beyond that is invented
+        assert "fan.pool_pump_3" not in ids
+        assert "light.pool_light_2" not in ids
+    finally:
+        await hass.config_entries.async_unload(entry.entry_id)
+        await hass.async_block_till_done()
+
+
+async def test_manual_hardware_options_are_ignored_once_hardware_answers(
+    hass: HomeAssistant,
+) -> None:
+    """Real hardware always wins: a leftover manual guess must not add or
+    remove anything once the controller reports for itself."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Whirlpool",
+        data={
+            CONF_CONNECTION: CONNECTION_GATEWAY,
+            CONF_HOST: "192.168.0.56",
+            CONF_PORT: 8899,
+            CONF_IDENTITY_SOURCE: IDENTITY_ENTRY_ID,
+        },
+        options={OPT_PUMP_COUNT: 6, OPT_LIGHT_COUNT: 2},
+    )
+    entry.add_to_hass(hass)
+    frames = (
+        _frames("ew11_probe", ControlConfiguration)
+        + _frames("ew11_probe", ControlConfiguration2)
+        + _frames("ew11_probe", FilterCycles)
+        + _frames("ew11_idle", StatusUpdate)
+    )
+
+    with patch(
+        "custom_components.spacentral_for_balboa.build_transport",
+        return_value=ReplayTransport(frames),
+    ):
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+    try:
+        entities = er.async_get(hass).entities
+        ids = {
+            e.entity_id for e in entities.values() if e.config_entry_id == entry.entry_id
+        }
+        # the real capture has three pumps and one light, not the six/two
+        # left over in options
+        assert "fan.whirlpool_pump_3" in ids
+        assert "fan.whirlpool_pump_4" not in ids
+        assert "light.whirlpool_light_2" not in ids
+    finally:
+        await hass.config_entries.async_unload(entry.entry_id)
+        await hass.async_block_till_done()
+
+
+async def test_options_flow_hides_hardware_fields_once_hardware_is_known(
+    hass: HomeAssistant, spa
+) -> None:
+    """No point offering counts that `apply_manual_hardware` would never read."""
+    entry, _ = spa
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert OPT_PUMP_COUNT not in result["data_schema"].schema
+
+
+async def test_options_flow_offers_hardware_fields_while_hardware_is_missing(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from custom_components.spacentral_for_balboa.balboa import client as client_module
+
+    monkeypatch.setattr(client_module, "CONFIGURATION_TIMEOUT", 0.1)
+
+    frames = _frames("ew11_probe", ControlConfiguration) + _frames(
+        "ew11_idle", StatusUpdate
+    )  # deliberately no ControlConfiguration2
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Pool",
+        data={
+            CONF_CONNECTION: CONNECTION_GATEWAY,
+            CONF_HOST: "192.168.0.23",
+            CONF_PORT: 8899,
+            CONF_IDENTITY_SOURCE: IDENTITY_ENTRY_ID,
+        },
+    )
+    entry.add_to_hass(hass)
+
+    with patch(
+        "custom_components.spacentral_for_balboa.build_transport",
+        return_value=ReplayTransport(frames),
+    ):
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+    try:
+        result = await hass.config_entries.options.async_init(entry.entry_id)
+        assert OPT_PUMP_COUNT in result["data_schema"].schema
+
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            {
+                OPT_PUMP_COUNT: 1,
+                OPT_LIGHT_COUNT: 0,
+                OPT_AUX_COUNT: 0,
+                OPT_HAS_BLOWER: False,
+                OPT_HAS_CIRCULATION_PUMP: False,
+                OPT_HAS_MISTER: False,
+            },
+        )
+        assert result["type"] is FlowResultType.CREATE_ENTRY
+        await hass.async_block_till_done()
+
+        # the reload the options change triggers must pick the new count up
+        entities = er.async_get(hass).entities
+        ids = {
+            e.entity_id for e in entities.values() if e.config_entry_id == entry.entry_id
+        }
+        assert "fan.pool_pump_1" in ids
     finally:
         await hass.config_entries.async_unload(entry.entry_id)
         await hass.async_block_till_done()

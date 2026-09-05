@@ -39,3 +39,20 @@ IDENTITY_ENTRY_ID: Final = "entry_id"
 # ── Options ───────────────────────────────────────────────────────────────────
 OPT_SYNC_TIME: Final = "sync_time"
 DEFAULT_SYNC_TIME: Final = False
+
+#: A manual fallback for what's fitted, used only while the controller itself
+#: never answers the hardware descriptor request (observed: SIBP2P/Colossus
+#: boards). Ignored entirely once real hardware is known -- see
+#: `SpaClient.apply_manual_hardware`.
+OPT_PUMP_COUNT: Final = "pump_count"
+OPT_LIGHT_COUNT: Final = "light_count"
+OPT_AUX_COUNT: Final = "aux_count"
+OPT_HAS_BLOWER: Final = "has_blower"
+OPT_HAS_CIRCULATION_PUMP: Final = "has_circulation_pump"
+OPT_HAS_MISTER: Final = "has_mister"
+DEFAULT_PUMP_COUNT: Final = 0
+DEFAULT_LIGHT_COUNT: Final = 0
+DEFAULT_AUX_COUNT: Final = 0
+DEFAULT_HAS_BLOWER: Final = False
+DEFAULT_HAS_CIRCULATION_PUMP: Final = False
+DEFAULT_HAS_MISTER: Final = False

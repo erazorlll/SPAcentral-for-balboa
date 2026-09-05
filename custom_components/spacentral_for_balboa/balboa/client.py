@@ -236,6 +236,18 @@ class SpaClient:
         self._gap_task = self._fault_task = None
         await self._transport.close()
 
+    def apply_manual_hardware(self, hardware: ControlConfiguration2) -> None:
+        """Fill in what the controller never answered, from user-entered counts.
+
+        Meant to be called once, right after `connect()`, when `state.hardware`
+        is still `None` -- some controllers (observed: SIBP2P/Colossus boards)
+        never answer that request at all. A no-op if hardware is already known,
+        so a real answer arriving first, or arriving later through `_handle`,
+        always wins over a guess.
+        """
+        if self._state.hardware is None:
+            self._state = self._state.with_hardware(hardware)
+
     def subscribe(self, callback: Callable[[], None]) -> Callable[[], None]:
         """Register a listener for state changes; returns the unsubscribe hook."""
         self._listeners.append(callback)

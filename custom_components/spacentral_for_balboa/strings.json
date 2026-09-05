@@ -37,6 +37,21 @@
         "title": "Balboa spa found",
         "description": "A Balboa Wi-Fi module answered at {host}. Add it?"
       },
+      "hardware_details": {
+        "title": "What does this spa have?",
+        "description": "Your spa's control board did not report which pumps, lights and other equipment it has -- some models never do. Enter what's fitted; you can change this later from the integration's options.",
+        "data": {
+          "pump_count": "Number of pumps",
+          "light_count": "Number of lights",
+          "aux_count": "Number of auxiliary outputs",
+          "has_blower": "Blower",
+          "has_circulation_pump": "Circulation pump",
+          "has_mister": "Mister"
+        },
+        "data_description": {
+          "pump_count": "Entered pumps only offer on/off, even if a pump actually has more than one speed."
+        }
+      },
       "reconfigure": {
         "title": "Change the connection",
         "description": "Point this spa at a different address. Its entities and history stay as they are.",
@@ -61,11 +76,19 @@
     "step": {
       "init": {
         "title": "Options",
+        "description": "The pump, light and other equipment counts below only appear while your spa's control board itself never reports what it has fitted, and are ignored the moment it does.",
         "data": {
-          "sync_time": "Keep the spa clock in sync"
+          "sync_time": "Keep the spa clock in sync",
+          "pump_count": "Number of pumps",
+          "light_count": "Number of lights",
+          "aux_count": "Number of auxiliary outputs",
+          "has_blower": "Blower",
+          "has_circulation_pump": "Circulation pump",
+          "has_mister": "Mister"
         },
         "data_description": {
-          "sync_time": "Sets the spa's clock from Home Assistant once an hour."
+          "sync_time": "Sets the spa's clock from Home Assistant once an hour.",
+          "pump_count": "Entered pumps only offer on/off, even if a pump actually has more than one speed."
         }
       }
     }

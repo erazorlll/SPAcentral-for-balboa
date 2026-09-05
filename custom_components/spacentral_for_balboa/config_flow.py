@@ -23,7 +23,14 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.device_registry import format_mac
 from homeassistant.helpers.service_info.dhcp import DhcpServiceInfo
 
-from .balboa import GATEWAY_PORT, WIFI_MODULE_PORT, SpaClient
+from .balboa import (
+    GATEWAY_PORT,
+    MAX_AUX,
+    MAX_LIGHTS,
+    MAX_PUMPS,
+    WIFI_MODULE_PORT,
+    SpaClient,
+)
 from .const import (
     CONF_CONNECTION,
     CONF_DEVICE_PATH,
@@ -31,8 +38,20 @@ from .const import (
     CONNECTION_GATEWAY,
     CONNECTION_SERIAL,
     CONNECTION_WIFI_MODULE,
+    DEFAULT_AUX_COUNT,
+    DEFAULT_HAS_BLOWER,
+    DEFAULT_HAS_CIRCULATION_PUMP,
+    DEFAULT_HAS_MISTER,
+    DEFAULT_LIGHT_COUNT,
+    DEFAULT_PUMP_COUNT,
     DEFAULT_SYNC_TIME,
     DOMAIN,
+    OPT_AUX_COUNT,
+    OPT_HAS_BLOWER,
+    OPT_HAS_CIRCULATION_PUMP,
+    OPT_HAS_MISTER,
+    OPT_LIGHT_COUNT,
+    OPT_PUMP_COUNT,
     OPT_SYNC_TIME,
 )
 from .identity import initial_identity_source
@@ -59,6 +78,7 @@ async def _probe(data: dict[str, Any]) -> dict[str, Any]:
         return {
             "model": client.state.model,
             "mac": client.state.mac_address,
+            "hardware_missing": client.state.hardware is None,
         }
     finally:
         await client.disconnect()
@@ -122,7 +142,7 @@ class BalboaSpacentralConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[cal
     ) -> ConfigFlowResult:
         """Let the user accept a discovered spa."""
         if user_input is not None:
-            return await self._create(self._discovered)
+            return await self._create_or_ask_hardware()
 
         return self.async_show_form(
             step_id="discovery_confirm",
@@ -166,7 +186,7 @@ class BalboaSpacentralConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[cal
             )
             errors = await self._try(data)
             if not errors:
-                return await self._create(data)
+                return await self._create_or_ask_hardware()
 
         return self.async_show_form(
             step_id=step_id,
@@ -192,13 +212,37 @@ class BalboaSpacentralConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[cal
             self._async_abort_entries_match({CONF_DEVICE_PATH: data[CONF_DEVICE_PATH]})
             errors = await self._try(data)
             if not errors:
-                return await self._create(data)
+                return await self._create_or_ask_hardware()
 
         return self.async_show_form(
             step_id="serial",
             data_schema=vol.Schema({vol.Required(CONF_DEVICE_PATH): str}),
             errors=errors,
         )
+
+    # ── Hardware fallback ────────────────────────────────────────────────────
+
+    async def async_step_hardware_details(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Ask what's fitted, for a controller that never answers on its own.
+
+        Reached only when the probe just completed found no hardware
+        descriptor (see `_probe`'s `hardware_missing`) -- a spa that reported
+        its hardware normally skips this step entirely.
+        """
+        if user_input is not None:
+            return await self._create(options=user_input)
+
+        return self.async_show_form(
+            step_id="hardware_details",
+            data_schema=vol.Schema(_hardware_detail_fields({})),
+        )
+
+    async def _create_or_ask_hardware(self) -> ConfigFlowResult:
+        if self._discovered.get("hardware_missing"):
+            return await self.async_step_hardware_details()
+        return await self._create()
 
     # ── Reconfiguration ──────────────────────────────────────────────────────
 
@@ -254,7 +298,9 @@ class BalboaSpacentralConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[cal
             return {"base": "unknown"}
         return {}
 
-    async def _create(self, data: dict[str, Any]) -> ConfigFlowResult:
+    async def _create(
+        self, *, options: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
         """Store the entry, freezing how it will be identified."""
         probed = self._discovered
         mac = probed.get("mac")
@@ -263,20 +309,53 @@ class BalboaSpacentralConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[cal
             self._abort_if_unique_id_configured()
 
         entry_data = {
-            **{k: v for k, v in data.items() if k not in ("model", "mac")},
+            **{
+                k: v
+                for k, v in probed.items()
+                if k not in ("model", "mac", "hardware_missing")
+            },
             CONF_IDENTITY_SOURCE: initial_identity_source(mac),
         }
         if mac:
             entry_data[CONF_MAC] = mac
 
         return self.async_create_entry(
-            title=probed.get("model") or "Balboa Spa", data=entry_data
+            title=probed.get("model") or "Balboa Spa",
+            data=entry_data,
+            options=options or {},
         )
 
     @staticmethod
     @callback
     def async_get_options_flow(entry: ConfigEntry) -> OptionsFlow:
         return BalboaSpacentralOptionsFlow()
+
+
+def _hardware_detail_fields(defaults: dict[str, Any]) -> dict[Any, Any]:
+    """The manual hardware fields, shared by the config and options flows."""
+    return {
+        vol.Required(
+            OPT_PUMP_COUNT, default=defaults.get(OPT_PUMP_COUNT, DEFAULT_PUMP_COUNT)
+        ): vol.All(int, vol.Range(min=0, max=MAX_PUMPS)),
+        vol.Required(
+            OPT_LIGHT_COUNT, default=defaults.get(OPT_LIGHT_COUNT, DEFAULT_LIGHT_COUNT)
+        ): vol.All(int, vol.Range(min=0, max=MAX_LIGHTS)),
+        vol.Required(
+            OPT_AUX_COUNT, default=defaults.get(OPT_AUX_COUNT, DEFAULT_AUX_COUNT)
+        ): vol.All(int, vol.Range(min=0, max=MAX_AUX)),
+        vol.Required(
+            OPT_HAS_BLOWER, default=defaults.get(OPT_HAS_BLOWER, DEFAULT_HAS_BLOWER)
+        ): bool,
+        vol.Required(
+            OPT_HAS_CIRCULATION_PUMP,
+            default=defaults.get(
+                OPT_HAS_CIRCULATION_PUMP, DEFAULT_HAS_CIRCULATION_PUMP
+            ),
+        ): bool,
+        vol.Required(
+            OPT_HAS_MISTER, default=defaults.get(OPT_HAS_MISTER, DEFAULT_HAS_MISTER)
+        ): bool,
+    }
 
 
 class BalboaSpacentralOptionsFlow(OptionsFlow):
@@ -288,19 +367,23 @@ class BalboaSpacentralOptionsFlow(OptionsFlow):
         if user_input is not None:
             return self.async_create_entry(data=user_input)
 
-        return self.async_show_form(
-            step_id="init",
-            data_schema=vol.Schema(
-                {
-                    vol.Required(
-                        OPT_SYNC_TIME,
-                        default=self.config_entry.options.get(
-                            OPT_SYNC_TIME, DEFAULT_SYNC_TIME
-                        ),
-                    ): bool
-                }
-            ),
-        )
+        schema: dict[Any, Any] = {
+            vol.Required(
+                OPT_SYNC_TIME,
+                default=self.config_entry.options.get(OPT_SYNC_TIME, DEFAULT_SYNC_TIME),
+            ): bool
+        }
+        # Only offered while the controller itself still isn't reporting its
+        # hardware -- once it does, these counts are never even read (see
+        # `SpaClient.apply_manual_hardware`), so showing them would just
+        # invite a stale, ignored setting. `runtime_data` is unset if the
+        # entry is not currently loaded (e.g. a connection error); assume the
+        # fields are still relevant rather than hiding a way to fix that.
+        client: SpaClient | None = self.config_entry.runtime_data
+        if client is None or client.state.hardware is None:
+            schema.update(_hardware_detail_fields(dict(self.config_entry.options)))
+
+        return self.async_show_form(step_id="init", data_schema=vol.Schema(schema))
 
 
 class CannotConnectError(HomeAssistantError):

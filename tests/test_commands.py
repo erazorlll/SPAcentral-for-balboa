@@ -334,3 +334,43 @@ async def test_temperature_step_fahrenheit() -> None:
     client, _ = _client_with(SpaState(status=fahrenheit))
     assert client.temperature_step == 1.0
     assert client.temperature_unit is TemperatureUnit.FAHRENHEIT
+
+
+async def test_apply_manual_hardware_fills_in_a_missing_descriptor() -> None:
+    client, _ = _client_with(SpaState(status=parse_frame(STATUS_IDLE)))
+    assert client.state.hardware is None
+
+    guess = ControlConfiguration2(
+        channel=0,
+        raw=b"",
+        pumps=(1, 0, 0, 0, 0, 0),
+        lights=(False, False),
+        aux=(False, False),
+        blower_speeds=0,
+        circulation_pump=False,
+        mister=False,
+    )
+    client.apply_manual_hardware(guess)
+    assert client.state.hardware is guess
+
+
+async def test_apply_manual_hardware_never_overrides_the_real_thing(
+    single_speed_state: SpaState,
+) -> None:
+    """A guess must not clobber hardware the controller actually reported."""
+    client, _ = _client_with(single_speed_state)
+    real = client.state.hardware
+    assert real is not None
+
+    guess = ControlConfiguration2(
+        channel=0,
+        raw=b"",
+        pumps=(1,) * 6,
+        lights=(True, True),
+        aux=(True, True),
+        blower_speeds=1,
+        circulation_pump=True,
+        mister=True,
+    )
+    client.apply_manual_hardware(guess)
+    assert client.state.hardware is real

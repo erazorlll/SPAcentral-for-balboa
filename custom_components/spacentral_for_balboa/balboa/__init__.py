@@ -30,7 +30,7 @@ from .messages import (
     UnknownMessage,
     parse_frame,
 )
-from .state import SpaState
+from .state import SpaState, manual_hardware
 from .transport import (
     GATEWAY_PORT,
     WIFI_MODULE_PORT,
@@ -71,5 +71,6 @@ __all__ = [
     "async_discover",
     "build_frame",
     "checksum",
+    "manual_hardware",
     "parse_frame",
 ]

@@ -13,7 +13,44 @@ from .messages import (
     StatusUpdate,
 )
 
-__all__ = ["SpaState"]
+__all__ = ["SpaState", "manual_hardware"]
+
+
+def manual_hardware(
+    *,
+    pump_count: int,
+    light_count: int,
+    aux_count: int,
+    has_blower: bool,
+    has_circulation_pump: bool,
+    has_mister: bool,
+) -> ControlConfiguration2:
+    """Build a hardware descriptor from user-entered counts.
+
+    For a controller that never answers the real request (observed on
+    SIBP2P/Colossus boards), entered once through the config flow and
+    editable afterwards through the options flow.
+
+    Every configured pump is single-speed, whatever the real pump's speed
+    count: a 2-speed pump reports a *current* speed of 0, 1 or 2, but this
+    guess has no way to know which, and guessing wrong is not something that
+    merely looks off -- `SpaClient._pump_reached` compares against the
+    guessed count, so a pump guessed at 2 speeds when it only has one would
+    have `set_pump` retry a "medium" request the hardware can never report
+    back, physically toggling the real pump up to `TOGGLE_LIMIT` times before
+    giving up. Single-speed is the one guess that can only ever ask for
+    on/off, which every pump supports.
+    """
+    return ControlConfiguration2(
+        channel=0,
+        raw=b"",
+        pumps=tuple(1 if i < pump_count else 0 for i in range(MAX_PUMPS)),
+        lights=tuple(i < light_count for i in range(MAX_LIGHTS)),
+        aux=tuple(i < aux_count for i in range(MAX_AUX)),
+        blower_speeds=1 if has_blower else 0,
+        circulation_pump=has_circulation_pump,
+        mister=has_mister,
+    )
 
 
 @dataclass(frozen=True, slots=True)

@@ -22,6 +22,12 @@ from custom_components.spacentral_for_balboa.const import (
     DOMAIN,
     IDENTITY_ENTRY_ID,
     IDENTITY_MAC,
+    OPT_AUX_COUNT,
+    OPT_HAS_BLOWER,
+    OPT_HAS_CIRCULATION_PUMP,
+    OPT_HAS_MISTER,
+    OPT_LIGHT_COUNT,
+    OPT_PUMP_COUNT,
 )
 
 PROBE = "custom_components.spacentral_for_balboa.config_flow._probe"
@@ -192,6 +198,72 @@ async def test_dhcp_discovery_offers_the_spa(hass: HomeAssistant) -> None:
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert result["data"][CONF_HOST] == "10.0.0.5"
     assert result["data"][CONF_PORT] == 4257
+
+
+async def test_hardware_details_step_skipped_when_hardware_is_found(
+    hass: HomeAssistant,
+) -> None:
+    """The everyday case: a spa that reports its own hardware asks nothing more."""
+    result = await _choose(hass, CONNECTION_GATEWAY)
+    with patch(
+        PROBE,
+        AsyncMock(
+            return_value={
+                "model": "BP6013G3",
+                "mac": None,
+                "hardware_missing": False,
+            }
+        ),
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {CONF_HOST: "192.168.0.56", CONF_PORT: 8899}
+        )
+
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert result["options"] == {}
+
+
+async def test_hardware_details_step_asked_when_hardware_is_missing(
+    hass: HomeAssistant,
+) -> None:
+    """Observed on SIBP2P/Colossus boards: the descriptor request goes unanswered."""
+    result = await _choose(hass, CONNECTION_GATEWAY)
+    with patch(
+        PROBE,
+        AsyncMock(
+            return_value={"model": "SIBP2P", "mac": None, "hardware_missing": True}
+        ),
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {CONF_HOST: "192.168.0.56", CONF_PORT: 8899}
+        )
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "hardware_details"
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {
+            OPT_PUMP_COUNT: 2,
+            OPT_LIGHT_COUNT: 1,
+            OPT_AUX_COUNT: 0,
+            OPT_HAS_BLOWER: True,
+            OPT_HAS_CIRCULATION_PUMP: True,
+            OPT_HAS_MISTER: False,
+        },
+    )
+
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert result["title"] == "SIBP2P"
+    assert "hardware_missing" not in result["data"]
+    assert result["options"] == {
+        OPT_PUMP_COUNT: 2,
+        OPT_LIGHT_COUNT: 1,
+        OPT_AUX_COUNT: 0,
+        OPT_HAS_BLOWER: True,
+        OPT_HAS_CIRCULATION_PUMP: True,
+        OPT_HAS_MISTER: False,
+    }
 
 
 async def test_reconfigure_keeps_the_entry(hass: HomeAssistant) -> None:

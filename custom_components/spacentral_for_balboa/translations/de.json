@@ -37,6 +37,21 @@
         "title": "Balboa-Spa gefunden",
         "description": "Unter {host} hat ein Balboa-WLAN-Modul geantwortet. Hinzufügen?"
       },
+      "hardware_details": {
+        "title": "Was hat dieses Spa?",
+        "description": "Die Steuerung deines Spas hat nicht gemeldet, welche Pumpen, Lichter und sonstige Ausstattung vorhanden sind -- das tun manche Modelle grundsätzlich nicht. Trage ein, was verbaut ist; du kannst das später in den Optionen der Integration ändern.",
+        "data": {
+          "pump_count": "Anzahl Pumpen",
+          "light_count": "Anzahl Lichter",
+          "aux_count": "Anzahl Zusatzausgänge",
+          "has_blower": "Gebläse",
+          "has_circulation_pump": "Umwälzpumpe",
+          "has_mister": "Vernebler"
+        },
+        "data_description": {
+          "pump_count": "Eingetragene Pumpen bieten nur An/Aus, auch wenn eine Pumpe tatsächlich mehrere Geschwindigkeiten hat."
+        }
+      },
       "reconfigure": {
         "title": "Verbindung ändern",
         "description": "Richte dieses Spa auf eine andere Adresse aus. Entitäten und Verlauf bleiben erhalten.",
@@ -61,11 +76,19 @@
     "step": {
       "init": {
         "title": "Optionen",
+        "description": "Die Anzahl-Felder für Pumpen, Lichter und sonstige Ausstattung erscheinen nur, solange die Steuerung deines Spas selbst nicht meldet, was verbaut ist, und werden ignoriert, sobald sie es tut.",
         "data": {
-          "sync_time": "Spa-Uhr synchron halten"
+          "sync_time": "Spa-Uhr synchron halten",
+          "pump_count": "Anzahl Pumpen",
+          "light_count": "Anzahl Lichter",
+          "aux_count": "Anzahl Zusatzausgänge",
+          "has_blower": "Gebläse",
+          "has_circulation_pump": "Umwälzpumpe",
+          "has_mister": "Vernebler"
         },
         "data_description": {
-          "sync_time": "Stellt die Uhr des Spas einmal pro Stunde nach Home Assistant."
+          "sync_time": "Stellt die Uhr des Spas einmal pro Stunde nach Home Assistant.",
+          "pump_count": "Eingetragene Pumpen bieten nur An/Aus, auch wenn eine Pumpe tatsächlich mehrere Geschwindigkeiten hat."
         }
       }
     }
