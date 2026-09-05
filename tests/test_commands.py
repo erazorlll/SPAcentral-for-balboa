@@ -7,6 +7,7 @@ installations even though it cannot be exercised on this hardware.
 
 from __future__ import annotations
 
+import asyncio
 from dataclasses import replace
 
 import pytest
@@ -79,6 +80,112 @@ async def test_set_target_temperature_uses_the_spa_unit(
     message = parse_frame(transport.written[-1])
     assert isinstance(message, SetTemperatureMessage)
     assert message.raw_value == 68  # celsius, half degrees
+
+
+async def test_set_target_temperature_retries_until_confirmed(
+    single_speed_state: SpaState,
+) -> None:
+    """A write can be lost to a bus collision like any other frame; unlike a
+    toggle there is nothing else that would notice and correct a dropped one,
+    so this must retry like `set_pump`/`set_heat_mode` do."""
+    client, _transport = _client_with(single_speed_state)
+
+    original_send = client._send
+    sent = 0
+
+    async def drop_first_then_confirm(frame: bytes) -> None:
+        nonlocal sent
+        sent += 1
+        await original_send(frame)
+        if sent < 2:
+            return  # first write "lost to a collision": state does not move
+        message = parse_frame(frame)
+        assert isinstance(message, SetTemperatureMessage)
+        status = client.state.status
+        assert status is not None
+        client._state = client._state.with_status(
+            replace(status, target_temperature=message.raw_value / 2)
+        )
+
+    client._send = drop_first_then_confirm  # type: ignore[method-assign]
+    await client.set_target_temperature(34.0)
+
+    assert sent == 2
+    assert client.pending_target_temperature is None
+
+
+async def test_set_target_temperature_stops_once_confirmed(
+    single_speed_state: SpaState,
+) -> None:
+    client, transport = _client_with(single_speed_state)
+
+    original_send = client._send
+
+    async def send_and_confirm(frame: bytes) -> None:
+        await original_send(frame)
+        message = parse_frame(frame)
+        assert isinstance(message, SetTemperatureMessage)
+        status = client.state.status
+        assert status is not None
+        client._state = client._state.with_status(
+            replace(status, target_temperature=message.raw_value / 2)
+        )
+
+    client._send = send_and_confirm  # type: ignore[method-assign]
+    await client.set_target_temperature(34.0)
+
+    assert len(transport.written) == 1
+    assert client.pending_target_temperature is None
+
+
+async def test_set_target_temperature_reports_pending_value_while_in_flight(
+    single_speed_state: SpaState,
+) -> None:
+    """The entity should see the requested value immediately, not the stale
+    confirmed one, while a write is still working its way to the controller."""
+    client, _transport = _client_with(single_speed_state)
+
+    task = asyncio.create_task(client.set_target_temperature(34.0))
+    await asyncio.sleep(0)  # let it send and start waiting for confirmation
+    assert client.pending_target_temperature == 34.0
+
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+
+
+async def test_set_target_temperature_superseded_by_newer_call(
+    single_speed_state: SpaState,
+) -> None:
+    """A burst of "+" presses must not have every call keep retrying and
+    fighting the newer ones for the bus -- only the final target matters."""
+    client, transport = _client_with(single_speed_state)
+
+    original_send = client._send
+
+    async def send_and_confirm(frame: bytes) -> None:
+        await original_send(frame)
+        message = parse_frame(frame)
+        assert isinstance(message, SetTemperatureMessage)
+        status = client.state.status
+        assert status is not None
+        client._state = client._state.with_status(
+            replace(status, target_temperature=message.raw_value / 2)
+        )
+
+    client._send = send_and_confirm  # type: ignore[method-assign]
+
+    first = asyncio.create_task(client.set_target_temperature(31.0))
+    await asyncio.sleep(0)  # let the first call send its opening frame
+    await client.set_target_temperature(35.0)
+    await first
+
+    assert client.pending_target_temperature is None
+    last_message = parse_frame(transport.written[-1])
+    assert isinstance(last_message, SetTemperatureMessage)
+    assert last_message.raw_value == 70  # 35.0 celsius, half degrees
+    # the superseded call must stop retrying rather than fight for the bus
+    assert len(transport.written) < 2 * TOGGLE_LIMIT
 
 
 async def test_set_clock(single_speed_state: SpaState) -> None:

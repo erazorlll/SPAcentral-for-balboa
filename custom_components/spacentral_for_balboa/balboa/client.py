@@ -120,6 +120,9 @@ class SpaClient:
         self._last_fault_request: float = 0.0
         self.unknown_messages = 0
 
+        self._pending_target_temperature: float | None = None
+        self._target_write_generation = 0
+
     # ── Properties ───────────────────────────────────────────────────────────
 
     @property
@@ -144,6 +147,20 @@ class SpaClient:
         if not self._transport.connected or not self._last_frame_at:
             return False
         return time.monotonic() - self._last_frame_at < STALE_AFTER
+
+    @property
+    def pending_target_temperature(self) -> float | None:
+        """The most recently requested target temperature, until confirmed.
+
+        A write can take up to `TOGGLE_CONFIRM_TIMEOUT` to be reflected in a
+        status frame, same as a toggle (see `_send_toggle_and_await_status`).
+        Exposing the requested value in the meantime keeps the entity from
+        flashing back to the last confirmed value while that is in flight;
+        `set_target_temperature` clears it once the write is confirmed, or
+        once it gives up, so a genuinely dropped write still surfaces as a
+        reset rather than being masked forever.
+        """
+        return self._pending_target_temperature
 
     @property
     def frames_read(self) -> int:
@@ -232,9 +249,59 @@ class SpaClient:
     # ── Commands ─────────────────────────────────────────────────────────────
 
     async def set_target_temperature(self, temperature: float) -> None:
-        """Set the target temperature, in whatever unit the spa is using."""
+        """Set the target temperature, confirming it landed like the
+        toggle-based setters do (see `_send_toggle_and_await_status`).
+
+        This write is as exposed to a lost/collided frame as any other on
+        this bus, but unlike a toggle nothing else would ever notice or
+        correct a dropped one -- there is no "wrong state" to toggle out of,
+        just a target that silently never moved. Confirmed on hardware as
+        the cause of a target temperature "resetting" itself shortly after
+        being raised by repeatedly pressing "+".
+
+        A burst of presses each calls this before earlier calls have been
+        confirmed. Rather than have every call retry independently and fight
+        the newer ones for the bus, each call tags itself with a generation
+        number and bails out as soon as a newer call has started -- only the
+        final requested value matters, so there is nothing for the older
+        calls left to confirm.
+        """
+        self._target_write_generation += 1
+        generation = self._target_write_generation
+        self._pending_target_temperature = temperature
+        self._notify()
+
         unit = self.temperature_unit
-        await self._send(set_temperature(temperature, unit))
+        divisor = CELSIUS_DIVISOR if unit is TemperatureUnit.CELSIUS else 1.0
+        raw = round(temperature * divisor)
+        try:
+            for _ in range(TOGGLE_LIMIT):
+                if self._target_write_generation != generation:
+                    return
+                if self._target_temperature_raw(divisor) == raw:
+                    return
+                sent_at = time.monotonic()
+                await self._send(set_temperature(temperature, unit))
+                with contextlib.suppress(TimeoutError):
+                    await asyncio.wait_for(
+                        self._await_status_since(sent_at), TOGGLE_CONFIRM_TIMEOUT
+                    )
+            if self._target_write_generation == generation:
+                _LOGGER.warning(
+                    "%s: target temperature write not confirmed after %d attempts",
+                    self.description,
+                    TOGGLE_LIMIT,
+                )
+        finally:
+            if self._target_write_generation == generation:
+                self._pending_target_temperature = None
+                self._notify()
+
+    def _target_temperature_raw(self, divisor: float) -> int | None:
+        status = self._state.status
+        if status is None or status.target_temperature is None:
+            return None
+        return round(status.target_temperature * divisor)
 
     async def set_temperature_unit(self, unit: TemperatureUnit) -> None:
         await self._send(set_temperature_unit(unit))

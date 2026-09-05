@@ -92,6 +92,16 @@ class BalboaClimate(BalboaEntity, ClimateEntity):
 
     @property
     def target_temperature(self) -> float | None:
+        """The confirmed value, or a still-in-flight write's requested value.
+
+        Without this, the card would flash to the requested value on click
+        (Home Assistant's own optimism) and then visibly fall back to the
+        last confirmed value for up to `TOGGLE_CONFIRM_TIMEOUT` while the
+        write is still working its way through -- see
+        `SpaClient.pending_target_temperature`.
+        """
+        if (pending := self._client.pending_target_temperature) is not None:
+            return pending
         return self.spa.status.target_temperature if self.spa.status else None
 
     @property
