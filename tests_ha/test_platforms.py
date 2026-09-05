@@ -235,6 +235,7 @@ async def test_sensors_follow_the_capture(hass: HomeAssistant, spa) -> None:
     assert hass.states.get("sensor.whirlpool_water_temperature").state == "33.5"
     assert hass.states.get("sensor.whirlpool_heat_mode").state == "ready"
     assert hass.states.get("sensor.whirlpool_temperature_range").state == "high"
+    assert hass.states.get("sensor.whirlpool_spa_time").state == "14:05"
 
 
 async def test_unload_leaves_nothing_behind(hass: HomeAssistant, spa) -> None:
@@ -406,6 +407,48 @@ async def test_filter_cycle_entities_exist_without_the_frame(
         state = hass.states.get("time.pool_filter_cycle_1_start")
         assert state is not None, "entity must exist even without the frame"
         assert state.state == "unknown"
+    finally:
+        await hass.config_entries.async_unload(entry.entry_id)
+        await hass.async_block_till_done()
+
+
+async def test_circulation_pump_exists_without_the_hardware_frame(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Some controllers (observed: SIBP2P/Colossus) never answer the hardware
+    descriptor request at all -- the circulation pump's *value* comes from the
+    status broadcast regardless, so it must not be gated on that frame ever
+    arriving."""
+    from custom_components.spacentral_for_balboa.balboa import client as client_module
+
+    monkeypatch.setattr(client_module, "CONFIGURATION_TIMEOUT", 0.1)
+
+    frames = _frames("ew11_probe", ControlConfiguration) + _frames(
+        "ew11_idle", StatusUpdate
+    )  # deliberately no ControlConfiguration2
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Pool",
+        data={
+            CONF_CONNECTION: CONNECTION_GATEWAY,
+            CONF_HOST: "192.168.0.23",
+            CONF_PORT: 8899,
+            CONF_IDENTITY_SOURCE: IDENTITY_ENTRY_ID,
+        },
+    )
+    entry.add_to_hass(hass)
+
+    with patch(
+        "custom_components.spacentral_for_balboa.build_transport",
+        return_value=ReplayTransport(frames),
+    ):
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+    try:
+        state = hass.states.get("binary_sensor.pool_circulation_pump")
+        assert state is not None, "entity must exist even without the hardware frame"
+        assert state.state == STATE_ON
     finally:
         await hass.config_entries.async_unload(entry.entry_id)
         await hass.async_block_till_done()

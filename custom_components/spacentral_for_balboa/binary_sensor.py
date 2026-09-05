@@ -39,7 +39,14 @@ BINARY_SENSORS: tuple[BalboaBinarySensorDescription, ...] = (
     BalboaBinarySensorDescription(
         key="circulation_pump",
         device_class=BinarySensorDeviceClass.RUNNING,
-        exists=lambda state: state.has_circulation_pump,
+        # No `exists` gate: unlike a numbered pump/light, there is only ever
+        # one of these, so a spa without one just shows a permanently-off
+        # sensor -- a low-cost false positive next to never creating it at
+        # all. That matters because `hardware.circulation_pump` never arrives
+        # on some controllers (observed: SIBP2P/Colossus boards do not answer
+        # the descriptor request at all), which used to hide this sensor
+        # forever even though its value is read straight from the status
+        # broadcast those boards do send.
         value=lambda state: bool(state.status and state.status.circulation_pump),
     ),
     BalboaBinarySensorDescription(

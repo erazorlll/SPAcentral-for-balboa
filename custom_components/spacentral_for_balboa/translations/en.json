@@ -92,6 +92,9 @@
       "target_temperature": {
         "name": "Target temperature"
       },
+      "spa_time": {
+        "name": "Spa clock"
+      },
       "heat_mode": {
         "name": "Heat mode",
         "state": {

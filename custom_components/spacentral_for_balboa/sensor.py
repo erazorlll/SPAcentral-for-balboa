@@ -63,6 +63,18 @@ SENSORS: tuple[BalboaSensorDescription, ...] = (
         ),
     ),
     BalboaSensorDescription(
+        key="spa_time",
+        icon="mdi:clock-outline",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        # The controller's own clock, read from the status broadcast -- distinct
+        # from `sync_clock` (button.py) and the hourly sync option, which only
+        # *write* Home Assistant's time to it. Without this there was no way to
+        # confirm a sync actually landed short of reading the spa's own panel.
+        value=lambda state: (
+            f"{state.status.hour:02d}:{state.status.minute:02d}" if state.status else None
+        ),
+    ),
+    BalboaSensorDescription(
         key="notification",
         device_class=SensorDeviceClass.ENUM,
         options=["none", "filter", "sanitizer", "ph"],

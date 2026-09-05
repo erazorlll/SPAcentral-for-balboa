@@ -92,6 +92,9 @@
       "target_temperature": {
         "name": "Solltemperatur"
       },
+      "spa_time": {
+        "name": "Spa-Uhrzeit"
+      },
       "heat_mode": {
         "name": "Heizmodus",
         "state": {
