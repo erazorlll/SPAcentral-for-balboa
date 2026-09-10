@@ -14,7 +14,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_MAC, CONF_PORT
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
-from homeassistant.helpers.event import async_track_time_interval
+from homeassistant.helpers.event import async_call_later, async_track_time_interval
 from homeassistant.util import dt as dt_util
 
 from .balboa import (
@@ -51,6 +51,12 @@ _LOGGER = logging.getLogger(__name__)
 type SpaConfigEntry = ConfigEntry[SpaClient]
 
 SYNC_TIME_INTERVAL = timedelta(hours=1)
+#: A fresh interval timer is registered on every setup, so every Home Assistant
+#: restart or entry reload pushes the first hourly tick a full hour into the
+#: future. Run one sync shortly after setup as well, so a restart does not leave
+#: the spa clock unsynced until then. The short delay lets the initial
+#: configuration exchange finish and a status frame arrive first.
+SYNC_TIME_STARTUP_DELAY = timedelta(seconds=30)
 
 
 def build_transport(data: Mapping[str, Any]) -> Transport:
@@ -132,4 +138,5 @@ def _setup_time_sync(hass: HomeAssistant, entry: SpaConfigEntry) -> None:
     async def sync(_now: datetime) -> None:
         await sync_clock(client)
 
+    entry.async_on_unload(async_call_later(hass, SYNC_TIME_STARTUP_DELAY, sync))
     entry.async_on_unload(async_track_time_interval(hass, sync, SYNC_TIME_INTERVAL))

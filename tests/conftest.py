@@ -37,6 +37,7 @@ def _fast_timings(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(client_module, "REQUEST_INTERVAL", 0.001)
     monkeypatch.setattr(client_module, "TOGGLE_CONFIRM_TIMEOUT", 0.05)
     monkeypatch.setattr(client_module, "FILTER_CYCLES_CONFIRM_TIMEOUT", 0.05)
+    monkeypatch.setattr(client_module, "CLOCK_CONFIRM_TIMEOUT", 0.05)
 
 
 @pytest.fixture(scope="session")

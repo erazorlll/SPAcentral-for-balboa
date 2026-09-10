@@ -80,6 +80,13 @@ REQUEST_INTERVAL = 0.2
 #: message, not because the bus behaves differently for it.
 FILTER_CYCLES_CONFIRM_TIMEOUT = 2.5
 FILTER_CYCLES_WRITE_RETRIES = 3
+#: `set_time` is a bare command with no protocol acknowledgement, so a frame
+#: lost to a bus collision left the spa clock untouched until the next
+#: scheduled sync a full hour later -- reported as a time sync that "doesn't
+#: update consistently every 60 mins". `set_clock` retries like
+#: `set_target_temperature`; same reasoning as `TOGGLE_CONFIRM_TIMEOUT`.
+CLOCK_CONFIRM_TIMEOUT = 2.5
+CLOCK_WRITE_RETRIES = 4
 #: How often to re-read the fault log. It is 24 requests, and faults are rare,
 #: so this is deliberately lazy. Re-reading the whole log also fills in
 #: whatever the previous pass lost to a bus collision -- three of twenty-six
@@ -319,14 +326,49 @@ class SpaClient:
         await self._send(set_temperature_unit(unit))
 
     async def set_clock(self, hour: int, minute: int) -> None:
-        status = self._state.status
-        await self._send(
-            set_time(
-                hour,
-                minute,
-                twenty_four_hour=status.twenty_four_hour_time if status else True,
+        """Set the spa clock to `hour:minute`, confirming it landed.
+
+        `set_time` carries no protocol acknowledgement, so a frame lost to a
+        bus collision used to leave the clock untouched until the next
+        scheduled sync a full hour later -- reported as a time sync that
+        "doesn't update consistently every 60 mins". Retries like
+        `set_target_temperature`: send, wait for a status frame sent after
+        it, check the reported time, repeat.
+
+        The spa clock has minute resolution only, so the write/confirm
+        exchange can itself straddle a minute boundary; a reported time one
+        minute past the requested one is accepted as confirmation.
+        """
+        accepted = {(hour, minute), _one_minute_later(hour, minute)}
+
+        def confirmed() -> bool:
+            status = self._state.status
+            return status is not None and (status.hour, status.minute) in accepted
+
+        for _ in range(CLOCK_WRITE_RETRIES):
+            if confirmed():
+                return
+            status = self._state.status
+            sent_at = time.monotonic()
+            await self._send(
+                set_time(
+                    hour,
+                    minute,
+                    twenty_four_hour=(
+                        status.twenty_four_hour_time if status else True
+                    ),
+                )
             )
-        )
+            with contextlib.suppress(TimeoutError):
+                await asyncio.wait_for(
+                    self._await_status_since(sent_at), CLOCK_CONFIRM_TIMEOUT
+                )
+        if not confirmed():
+            _LOGGER.warning(
+                "%s: clock write not confirmed after %d attempts",
+                self.description,
+                CLOCK_WRITE_RETRIES,
+            )
 
     async def request_fault_log(self, entry: int = 0) -> None:
         """Ask for one fault log entry; the answer arrives asynchronously."""
@@ -721,6 +763,17 @@ def _significant_change(old: StatusUpdate, new: StatusUpdate) -> bool:
         or old.priming != new.priming
         or old.twenty_four_hour_time != new.twenty_four_hour_time
     )
+
+
+def _one_minute_later(hour: int, minute: int) -> tuple[int, int]:
+    """`hour:minute` advanced by one minute, wrapping at 60 and 24.
+
+    `set_clock` confirms against this too: the spa clock has no seconds, so
+    its minute can roll over during the write/confirm exchange.
+    """
+    if minute == 59:
+        return (hour + 1) % 24, 0
+    return hour, minute + 1
 
 
 def _filter_cycles_confirmed(written: FilterCycles, received: FilterCycles) -> bool:

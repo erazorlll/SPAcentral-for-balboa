@@ -188,13 +188,86 @@ async def test_set_target_temperature_superseded_by_newer_call(
     assert len(transport.written) < 2 * TOGGLE_LIMIT
 
 
+def _confirm_clock(client: SpaClient) -> None:
+    """Fold a `SetTimeMessage` write back into the status, as the spa would."""
+    original_send = client._send
+
+    async def send_and_confirm(frame: bytes) -> None:
+        await original_send(frame)
+        message = parse_frame(frame)
+        assert isinstance(message, SetTimeMessage)
+        status = client.state.status
+        assert status is not None
+        client._state = client._state.with_status(
+            replace(status, hour=message.hour, minute=message.minute)
+        )
+
+    client._send = send_and_confirm  # type: ignore[method-assign]
+
+
 async def test_set_clock(single_speed_state: SpaState) -> None:
     client, transport = _client_with(single_speed_state)
+    _confirm_clock(client)
     await client.set_clock(7, 45)
+    assert len(transport.written) == 1
     message = parse_frame(transport.written[-1])
     assert isinstance(message, SetTimeMessage)
     assert (message.hour, message.minute) == (7, 45)
     assert message.twenty_four_hour is True
+
+
+async def test_set_clock_retries_until_confirmed(single_speed_state: SpaState) -> None:
+    """`set_time` has no acknowledgement and nothing else corrects a dropped
+    one, so a lost frame must be retried rather than left for an hour."""
+    client, transport = _client_with(single_speed_state)
+
+    original_send = client._send
+    sent = 0
+
+    async def drop_first_then_confirm(frame: bytes) -> None:
+        nonlocal sent
+        sent += 1
+        await original_send(frame)
+        if sent < 2:
+            return  # first write "lost to a collision": the clock does not move
+        message = parse_frame(frame)
+        assert isinstance(message, SetTimeMessage)
+        status = client.state.status
+        assert status is not None
+        client._state = client._state.with_status(
+            replace(status, hour=message.hour, minute=message.minute)
+        )
+
+    client._send = drop_first_then_confirm  # type: ignore[method-assign]
+    await client.set_clock(7, 45)
+
+    assert sent == 2
+    assert len(transport.written) == 2
+
+
+async def test_set_clock_confirms_when_the_minute_rolls_over(
+    single_speed_state: SpaState,
+) -> None:
+    """The secondsless spa clock may tick past the requested minute during the
+    write/confirm exchange; that must still count as confirmed."""
+    client, transport = _client_with(single_speed_state)
+
+    original_send = client._send
+
+    async def confirm_one_minute_late(frame: bytes) -> None:
+        await original_send(frame)
+        message = parse_frame(frame)
+        assert isinstance(message, SetTimeMessage)
+        status = client.state.status
+        assert status is not None
+        client._state = client._state.with_status(
+            replace(status, hour=message.hour, minute=message.minute + 1)
+        )
+
+    client._send = confirm_one_minute_late  # type: ignore[method-assign]
+    await client.set_clock(7, 45)
+
+    assert len(transport.written) == 1
 
 
 async def test_set_temperature_unit(single_speed_state: SpaState) -> None:
