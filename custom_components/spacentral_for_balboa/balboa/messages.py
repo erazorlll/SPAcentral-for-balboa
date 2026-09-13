@@ -402,7 +402,9 @@ def _parse_control_configuration_2(channel: int, raw: bytes, data: bytes) -> Mes
         ),
         lights=(bool(data[2] & 0x03), bool((data[2] >> 6) & 0x03)),
         blower_speeds=data[3] & 0x03,
-        circulation_pump=bool((data[3] >> 6) & 0x03),
+        # Bit 7 only; bits 4-6 are not part of the circ-pump flag, and a
+        # controller setting bit 6 must not be reported as having one.
+        circulation_pump=bool(data[3] & 0x80),
         mister=bool(data[4] & 0x30),
         aux=(bool(data[4] & 0x01), bool(data[4] & 0x02)),
     )
