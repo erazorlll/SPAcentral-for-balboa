@@ -259,3 +259,25 @@ def test_truncated_fault_log_is_not_fatal() -> None:
 
     short = FAULT_ENTRY_0[:9] + FAULT_ENTRY_0[-2:]
     assert isinstance(parse_frame(short), UnknownMessage)
+
+
+@pytest.mark.parametrize(
+    ("flags", "expected"),
+    [(0x00, False), (0x40, False), (0x80, True), (0xC0, True)],
+)
+def test_circulation_pump_is_bit_7_only(flags: int, expected: bool) -> None:
+    """Bit 6 alone must not claim a circulation pump (see issue #2)."""
+    from balboa.const import MessageType
+    from balboa.framing import build_frame
+    from balboa.messages import ControlConfiguration2
+
+    frame = build_frame(
+        0x0A,
+        MessageType.CONTROL_CONFIGURATION_2.value,
+        bytes([0x06, 0x00, 0x01, flags, 0x00, 0x00]),
+    )
+    hardware = parse_frame(frame)
+    assert isinstance(hardware, ControlConfiguration2)
+    assert hardware.circulation_pump is expected
+    # The blower shares the byte and must be unaffected.
+    assert hardware.blower_speeds == 0
