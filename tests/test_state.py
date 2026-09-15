@@ -39,6 +39,26 @@ def test_empty_state_is_not_ready() -> None:
     assert state.mac_address is None
 
 
+def test_hardware_reported_tells_the_controller_from_a_manual_guess() -> None:
+    assert SpaState().hardware_reported is False
+
+    guess = manual_hardware(
+        pump_count=1,
+        light_count=0,
+        aux_count=0,
+        has_blower=False,
+        has_circulation_pump=True,
+        has_mister=False,
+    )
+    assert SpaState().with_hardware(guess).hardware_reported is False
+
+    reported = parse_frame(bytes.fromhex("7e0b0abf2e060001500000547e"))
+    assert isinstance(reported, ControlConfiguration2)
+    state = SpaState().with_hardware(reported)
+    assert state.hardware_reported is True
+    assert state.has_circulation_pump is False
+
+
 def test_empty_state_answers_every_accessor() -> None:
     state = SpaState()
     assert state.pump_speeds(0) == 0

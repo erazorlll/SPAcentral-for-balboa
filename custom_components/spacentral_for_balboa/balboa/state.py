@@ -96,6 +96,15 @@ class SpaState:
         return self.hardware.pumps[index]
 
     @property
+    def hardware_reported(self) -> bool:
+        """Whether the hardware came from the controller, not a manual guess.
+
+        `manual_hardware` builds its descriptor without a frame; anything the
+        controller actually sent carries the raw bytes it was parsed from.
+        """
+        return self.hardware is not None and bool(self.hardware.raw)
+
+    @property
     def has_circulation_pump(self) -> bool:
         return self.hardware is not None and self.hardware.circulation_pump
 

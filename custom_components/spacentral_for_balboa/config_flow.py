@@ -298,9 +298,7 @@ class BalboaSpacentralConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[cal
             return {"base": "unknown"}
         return {}
 
-    async def _create(
-        self, *, options: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    async def _create(self, *, options: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Store the entry, freezing how it will be identified."""
         probed = self._discovered
         mac = probed.get("mac")
@@ -348,9 +346,7 @@ def _hardware_detail_fields(defaults: dict[str, Any]) -> dict[Any, Any]:
         ): bool,
         vol.Required(
             OPT_HAS_CIRCULATION_PUMP,
-            default=defaults.get(
-                OPT_HAS_CIRCULATION_PUMP, DEFAULT_HAS_CIRCULATION_PUMP
-            ),
+            default=defaults.get(OPT_HAS_CIRCULATION_PUMP, DEFAULT_HAS_CIRCULATION_PUMP),
         ): bool,
         vol.Required(
             OPT_HAS_MISTER, default=defaults.get(OPT_HAS_MISTER, DEFAULT_HAS_MISTER)
@@ -376,11 +372,13 @@ class BalboaSpacentralOptionsFlow(OptionsFlow):
         # Only offered while the controller itself still isn't reporting its
         # hardware -- once it does, these counts are never even read (see
         # `SpaClient.apply_manual_hardware`), so showing them would just
-        # invite a stale, ignored setting. `runtime_data` is unset if the
-        # entry is not currently loaded (e.g. a connection error); assume the
-        # fields are still relevant rather than hiding a way to fix that.
+        # invite a stale, ignored setting. Setup has already filled in the
+        # manual guess by now, so `hardware` alone is never None here; ask
+        # where it came from instead. `runtime_data` is unset if the entry is
+        # not currently loaded (e.g. a connection error); assume the fields
+        # are still relevant rather than hiding a way to fix that.
         client: SpaClient | None = self.config_entry.runtime_data
-        if client is None or client.state.hardware is None:
+        if client is None or not client.state.hardware_reported:
             schema.update(_hardware_detail_fields(dict(self.config_entry.options)))
 
         return self.async_show_form(step_id="init", data_schema=vol.Schema(schema))
