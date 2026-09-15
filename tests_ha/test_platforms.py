@@ -242,7 +242,8 @@ async def test_sensors_follow_the_capture(hass: HomeAssistant, spa) -> None:
     assert hass.states.get("sensor.whirlpool_water_temperature").state == "33.5"
     assert hass.states.get("sensor.whirlpool_heat_mode").state == "ready"
     assert hass.states.get("sensor.whirlpool_temperature_range").state == "high"
-    assert hass.states.get("sensor.whirlpool_spa_time").state == "14:05"
+    # key `spa_time`, but the entity id follows its translated name "Spa clock"
+    assert hass.states.get("sensor.whirlpool_spa_clock").state == "14:05"
 
 
 async def test_unload_leaves_nothing_behind(hass: HomeAssistant, spa) -> None:
