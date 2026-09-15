@@ -354,9 +354,7 @@ class SpaClient:
                 set_time(
                     hour,
                     minute,
-                    twenty_four_hour=(
-                        status.twenty_four_hour_time if status else True
-                    ),
+                    twenty_four_hour=(status.twenty_four_hour_time if status else True),
                 )
             )
             with contextlib.suppress(TimeoutError):
