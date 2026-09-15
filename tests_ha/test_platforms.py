@@ -462,6 +462,100 @@ async def test_circulation_pump_exists_without_the_hardware_frame(
         await hass.async_block_till_done()
 
 
+#: Hardware descriptor of a BP6013G1 on setup S01, captured by the reporter of
+#: issue #2: two pumps, one light, flags byte 0x50 -- no circulation pump.
+BP6013G1_S01_HARDWARE = bytes.fromhex("7e0b0abf2e060001500000547e")
+
+
+async def test_circulation_pump_sensor_is_not_created_for_a_spa_without_one(
+    hass: HomeAssistant,
+) -> None:
+    """A controller reporting no circulation pump gets no sensor for it, and
+    the leftover from an older version is removed from the registry."""
+    frames = [
+        *_frames("ew11_probe", ControlConfiguration),
+        BP6013G1_S01_HARDWARE,
+        *_frames("ew11_probe", FilterCycles),
+        *_frames("ew11_idle", StatusUpdate),
+    ]
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Pool",
+        data={
+            CONF_CONNECTION: CONNECTION_GATEWAY,
+            CONF_HOST: "192.168.0.23",
+            CONF_PORT: 8899,
+            CONF_IDENTITY_SOURCE: IDENTITY_ENTRY_ID,
+        },
+    )
+    entry.add_to_hass(hass)
+    registry = er.async_get(hass)
+    unique_id = f"{entry.entry_id}_circulation_pump"
+    registry.async_get_or_create(
+        Platform.BINARY_SENSOR, DOMAIN, unique_id, config_entry=entry
+    )
+
+    with patch(
+        "custom_components.spacentral_for_balboa.build_transport",
+        return_value=ReplayTransport(frames),
+    ):
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+    try:
+        assert (
+            registry.async_get_entity_id(Platform.BINARY_SENSOR, DOMAIN, unique_id)
+            is None
+        )
+        assert hass.states.get("binary_sensor.pool_circulation_pump") is None
+        # the rest of the hardware is still there
+        assert hass.states.get("fan.pool_pump_1") is not None
+        assert hass.states.get("fan.pool_pump_2") is not None
+        assert hass.states.get("binary_sensor.pool_heating") is not None
+    finally:
+        await hass.config_entries.async_unload(entry.entry_id)
+        await hass.async_block_till_done()
+
+
+async def test_manual_hardware_without_circulation_pump_creates_no_sensor(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The manual fallback's "no circulation pump" answer is respected."""
+    from custom_components.spacentral_for_balboa.balboa import client as client_module
+
+    monkeypatch.setattr(client_module, "CONFIGURATION_TIMEOUT", 0.1)
+
+    frames = _frames("ew11_probe", ControlConfiguration) + _frames(
+        "ew11_idle", StatusUpdate
+    )  # deliberately no ControlConfiguration2
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Pool",
+        data={
+            CONF_CONNECTION: CONNECTION_GATEWAY,
+            CONF_HOST: "192.168.0.23",
+            CONF_PORT: 8899,
+            CONF_IDENTITY_SOURCE: IDENTITY_ENTRY_ID,
+        },
+        options={OPT_PUMP_COUNT: 1, OPT_HAS_CIRCULATION_PUMP: False},
+    )
+    entry.add_to_hass(hass)
+
+    with patch(
+        "custom_components.spacentral_for_balboa.build_transport",
+        return_value=ReplayTransport(frames),
+    ):
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+    try:
+        assert hass.states.get("binary_sensor.pool_circulation_pump") is None
+        assert hass.states.get("fan.pool_pump_1") is not None
+    finally:
+        await hass.config_entries.async_unload(entry.entry_id)
+        await hass.async_block_till_done()
+
+
 async def test_manual_hardware_options_create_entities_without_the_frame(
     hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
 ) -> None:
