@@ -281,3 +281,18 @@ def test_circulation_pump_is_bit_7_only(flags: int, expected: bool) -> None:
     assert hardware.circulation_pump is expected
     # The blower shares the byte and must be unaffected.
     assert hardware.blower_speeds == 0
+
+
+def test_bp6013g1_s01_reports_no_circulation_pump() -> None:
+    """A real BP6013G1 (software 43.0, setup S01) sends 0x50 in the flags
+    byte: bit 6 set, bit 7 clear. S01 has no circulation pump (issue #2)."""
+    from balboa.messages import ControlConfiguration2
+
+    hardware = parse_frame(bytes.fromhex("7e0b0abf2e060001500000547e"))
+    assert isinstance(hardware, ControlConfiguration2)
+    assert hardware.pumps == (2, 1, 0, 0, 0, 0)
+    assert hardware.lights == (True, False)
+    assert hardware.blower_speeds == 0
+    assert hardware.circulation_pump is False
+    assert hardware.mister is False
+    assert hardware.aux == (False, False)
