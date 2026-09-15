@@ -595,40 +595,45 @@ async def test_options_flow_offers_hardware_fields_while_hardware_is_missing(
     )
     entry.add_to_hass(hass)
 
+    # Kept patched for the whole test: saving the options reloads the entry,
+    # which builds a transport again -- a fresh replay each time, since the
+    # first one has already served its frames.
     with patch(
         "custom_components.spacentral_for_balboa.build_transport",
-        return_value=ReplayTransport(frames),
+        side_effect=lambda _data: ReplayTransport(frames),
     ):
         assert await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
 
-    try:
-        result = await hass.config_entries.options.async_init(entry.entry_id)
-        assert OPT_PUMP_COUNT in result["data_schema"].schema
+        try:
+            result = await hass.config_entries.options.async_init(entry.entry_id)
+            assert OPT_PUMP_COUNT in result["data_schema"].schema
 
-        result = await hass.config_entries.options.async_configure(
-            result["flow_id"],
-            {
-                OPT_PUMP_COUNT: 1,
-                OPT_LIGHT_COUNT: 0,
-                OPT_AUX_COUNT: 0,
-                OPT_HAS_BLOWER: False,
-                OPT_HAS_CIRCULATION_PUMP: False,
-                OPT_HAS_MISTER: False,
-            },
-        )
-        assert result["type"] is FlowResultType.CREATE_ENTRY
-        await hass.async_block_till_done()
+            result = await hass.config_entries.options.async_configure(
+                result["flow_id"],
+                {
+                    OPT_PUMP_COUNT: 1,
+                    OPT_LIGHT_COUNT: 0,
+                    OPT_AUX_COUNT: 0,
+                    OPT_HAS_BLOWER: False,
+                    OPT_HAS_CIRCULATION_PUMP: False,
+                    OPT_HAS_MISTER: False,
+                },
+            )
+            assert result["type"] is FlowResultType.CREATE_ENTRY
+            await hass.async_block_till_done()
 
-        # the reload the options change triggers must pick the new count up
-        entities = er.async_get(hass).entities
-        ids = {
-            e.entity_id for e in entities.values() if e.config_entry_id == entry.entry_id
-        }
-        assert "fan.pool_pump_1" in ids
-    finally:
-        await hass.config_entries.async_unload(entry.entry_id)
-        await hass.async_block_till_done()
+            # the reload the options change triggers must pick the new count up
+            entities = er.async_get(hass).entities
+            ids = {
+                e.entity_id
+                for e in entities.values()
+                if e.config_entry_id == entry.entry_id
+            }
+            assert "fan.pool_pump_1" in ids
+        finally:
+            await hass.config_entries.async_unload(entry.entry_id)
+            await hass.async_block_till_done()
 
 
 async def test_last_fault_sensor_exists_without_data(hass: HomeAssistant, spa) -> None:
